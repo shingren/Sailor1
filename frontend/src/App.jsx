@@ -3,6 +3,7 @@ import { useAuth } from './AuthContext'
 import HomePage from './HomePage'
 import MesasPage from './MesasPage'
 import ProductosPage from './ProductosPage'
+import PedidosPage from './PedidosPage'
 import LoginPage from './LoginPage'
 
 function App() {
@@ -17,7 +18,7 @@ function App() {
   return (
     <div>
       <nav>
-        <Link to="/">Home</Link> | <Link to="/mesas">Mesas</Link> | <Link to="/productos">Productos</Link> | <Link to="/login">Login</Link>
+        <Link to="/">Home</Link> | <Link to="/mesas">Mesas</Link> | <Link to="/productos">Productos</Link> | <Link to="/pedidos">Pedidos</Link> | <Link to="/login">Login</Link>
         {isAuthenticated && (
           <span>
             {' '}| Logged in as {email} | <button onClick={handleLogout}>Logout</button>
@@ -30,6 +31,7 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/mesas" element={<MesasPage />} />
         <Route path="/productos" element={<ProductosPage />} />
+        <Route path="/pedidos" element={<PedidosPage />} />
       </Routes>
     </div>
   )
