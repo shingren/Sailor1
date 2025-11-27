@@ -26,6 +26,10 @@ public class SecurityConfig {
                 .requestMatchers("/mesas/**").authenticated()
                 .requestMatchers("/productos/**").authenticated()
                 .requestMatchers("/pedidos/**").authenticated()
+                .requestMatchers("/facturas/**").authenticated()
+                .requestMatchers("/pagos/**").authenticated()
+                .requestMatchers("/insumos/**").authenticated()
+                .requestMatchers("/recetas/**").authenticated()
                 .anyRequest().authenticated()
             )
             .httpBasic(basic -> {});

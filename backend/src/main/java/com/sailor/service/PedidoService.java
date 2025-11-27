@@ -4,19 +4,14 @@ import com.sailor.dto.PedidoCreateRequestDTO;
 import com.sailor.dto.PedidoItemRequestDTO;
 import com.sailor.dto.PedidoItemResponseDTO;
 import com.sailor.dto.PedidoResponseDTO;
-import com.sailor.entity.Mesa;
-import com.sailor.entity.Pedido;
-import com.sailor.entity.PedidoEstado;
-import com.sailor.entity.PedidoItem;
-import com.sailor.entity.Producto;
-import com.sailor.repository.MesaRepository;
-import com.sailor.repository.PedidoRepository;
-import com.sailor.repository.ProductoRepository;
+import com.sailor.entity.*;
+import com.sailor.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,6 +25,15 @@ public class PedidoService {
 
     @Autowired
     private ProductoRepository productoRepository;
+
+    @Autowired
+    private RecetaRepository recetaRepository;
+
+    @Autowired
+    private InsumoRepository insumoRepository;
+
+    @Autowired
+    private MovimientoInsumoRepository movimientoInsumoRepository;
 
     @Transactional
     public PedidoResponseDTO createPedido(PedidoCreateRequestDTO request) {
@@ -89,9 +93,47 @@ public class PedidoService {
             throw new RuntimeException("Invalid transition from " + pedido.getEstado() + " to " + nuevoEstado);
         }
 
+        if (nuevoEstado.equals("ENTREGADO")) {
+            deductInventory(pedido);
+        }
+
         pedido.setEstado(nuevoEstado);
         Pedido savedPedido = pedidoRepository.save(pedido);
         return mapToResponseDTO(savedPedido);
+    }
+
+    private void deductInventory(Pedido pedido) {
+        for (PedidoItem pedidoItem : pedido.getItems()) {
+            Optional<Receta> recetaOpt = recetaRepository.findByProductoId(pedidoItem.getProducto().getId());
+
+            if (recetaOpt.isEmpty()) {
+                continue;
+            }
+
+            Receta receta = recetaOpt.get();
+
+            for (RecetaItem recetaItem : receta.getItems()) {
+                double cantidadADeducir = recetaItem.getCantidadNecesaria() * pedidoItem.getCantidad();
+                Insumo insumo = recetaItem.getInsumo();
+
+                if (insumo.getStockActual() < cantidadADeducir) {
+                    throw new RuntimeException("Stock insuficiente para insumo: " + insumo.getNombre() +
+                            ". Disponible: " + insumo.getStockActual() + ", Necesario: " + cantidadADeducir);
+                }
+
+                insumo.setStockActual(insumo.getStockActual() - cantidadADeducir);
+
+                MovimientoInsumo movimiento = new MovimientoInsumo();
+                movimiento.setInsumo(insumo);
+                movimiento.setCantidad(-cantidadADeducir);
+                movimiento.setTipo("CONSUMO");
+                movimiento.setDescripcion("Consumo por pedido #" + pedido.getId() + " - " +
+                        pedidoItem.getProducto().getNombre() + " x" + pedidoItem.getCantidad());
+
+                movimientoInsumoRepository.save(movimiento);
+                insumoRepository.save(insumo);
+            }
+        }
     }
 
     private PedidoResponseDTO mapToResponseDTO(Pedido pedido) {
