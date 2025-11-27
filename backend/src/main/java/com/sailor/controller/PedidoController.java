@@ -29,4 +29,26 @@ public class PedidoController {
     public PedidoResponseDTO getPedidoById(@PathVariable Long id) {
         return pedidoService.getPedidoById(id);
     }
+
+    @GetMapping("/activos")
+    public List<PedidoResponseDTO> getActivePedidos() {
+        return pedidoService.getActivePedidos();
+    }
+
+    @PatchMapping("/{id}/estado")
+    public PedidoResponseDTO cambiarEstado(@PathVariable Long id, @RequestBody EstadoRequest request) {
+        return pedidoService.cambiarEstado(id, request.getEstado());
+    }
+
+    static class EstadoRequest {
+        private String estado;
+
+        public String getEstado() {
+            return estado;
+        }
+
+        public void setEstado(String estado) {
+            this.estado = estado;
+        }
+    }
 }

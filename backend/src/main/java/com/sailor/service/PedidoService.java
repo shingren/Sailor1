@@ -6,6 +6,7 @@ import com.sailor.dto.PedidoItemResponseDTO;
 import com.sailor.dto.PedidoResponseDTO;
 import com.sailor.entity.Mesa;
 import com.sailor.entity.Pedido;
+import com.sailor.entity.PedidoEstado;
 import com.sailor.entity.PedidoItem;
 import com.sailor.entity.Producto;
 import com.sailor.repository.MesaRepository;
@@ -66,6 +67,31 @@ public class PedidoService {
         Pedido pedido = pedidoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Pedido not found with id: " + id));
         return mapToResponseDTO(pedido);
+    }
+
+    public List<PedidoResponseDTO> getActivePedidos() {
+        return pedidoRepository.findAll().stream()
+                .filter(pedido -> !pedido.getEstado().equals("ENTREGADO"))
+                .map(this::mapToResponseDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public PedidoResponseDTO cambiarEstado(Long pedidoId, String nuevoEstado) {
+        Pedido pedido = pedidoRepository.findById(pedidoId)
+                .orElseThrow(() -> new RuntimeException("Pedido not found with id: " + pedidoId));
+
+        if (!PedidoEstado.isValid(nuevoEstado)) {
+            throw new RuntimeException("Invalid estado: " + nuevoEstado);
+        }
+
+        if (!PedidoEstado.isValidTransition(pedido.getEstado(), nuevoEstado)) {
+            throw new RuntimeException("Invalid transition from " + pedido.getEstado() + " to " + nuevoEstado);
+        }
+
+        pedido.setEstado(nuevoEstado);
+        Pedido savedPedido = pedidoRepository.save(pedido);
+        return mapToResponseDTO(savedPedido);
     }
 
     private PedidoResponseDTO mapToResponseDTO(Pedido pedido) {
