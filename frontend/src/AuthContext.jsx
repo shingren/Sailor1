@@ -4,28 +4,41 @@ const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [accessToken, setAccessToken] = useState('')
+  const [refreshToken, setRefreshToken] = useState('')
 
-  const isAuthenticated = email !== '' && password !== ''
+  const isAuthenticated = accessToken !== ''
 
-  const login = (userEmail, userPassword) => {
-    setEmail(userEmail)
-    setPassword(userPassword)
+  const login = async (userEmail, userPassword) => {
+    const response = await fetch('http://localhost:8080/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: userEmail, password: userPassword })
+    })
+
+    if (!response.ok) {
+      throw new Error('Login failed')
+    }
+
+    const data = await response.json()
+    setEmail(data.email)
+    setAccessToken(data.accessToken)
+    setRefreshToken(data.refreshToken)
   }
 
   const logout = () => {
     setEmail('')
-    setPassword('')
+    setAccessToken('')
+    setRefreshToken('')
   }
 
   const getAuthHeader = () => {
     if (!isAuthenticated) return null
-    const credentials = btoa(email + ':' + password)
-    return 'Basic ' + credentials
+    return 'Bearer ' + accessToken
   }
 
   return (
-    <AuthContext.Provider value={{ email, password, isAuthenticated, login, logout, getAuthHeader }}>
+    <AuthContext.Provider value={{ email, isAuthenticated, login, logout, getAuthHeader }}>
       {children}
     </AuthContext.Provider>
   )

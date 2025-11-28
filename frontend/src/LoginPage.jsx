@@ -16,23 +16,10 @@ function LoginPage() {
     setLoading(true)
 
     try {
-      const credentials = btoa(email + ':' + password)
-      const response = await fetch('http://localhost:8080/mesas', {
-        headers: {
-          'Authorization': 'Basic ' + credentials
-        }
-      })
-
-      if (response.ok) {
-        login(email, password)
-        navigate('/mesas')
-      } else if (response.status === 401) {
-        setError('Invalid credentials')
-      } else {
-        setError('Login failed')
-      }
+      await login(email, password)
+      navigate('/')
     } catch (err) {
-      setError('Error connecting to server')
+      setError('Invalid credentials')
     } finally {
       setLoading(false)
     }
