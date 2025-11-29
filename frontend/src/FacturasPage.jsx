@@ -142,84 +142,103 @@ function FacturasPage() {
 
   if (!isAuthenticated) {
     return (
-      <div>
-        <h2>Facturas</h2>
-        <p>You must log in to view this page</p>
-        <Link to="/login">Go to Login</Link>
+      <div className="centered-container">
+        <div className="card">
+          <h2>Facturas</h2>
+          <p>You must log in to view this page</p>
+          <Link to="/login" className="btn-primary">Go to Login</Link>
+        </div>
       </div>
     )
   }
 
   return (
     <div>
-      <h2>Facturas - Billing & Payments</h2>
+      <h1>Facturas - Billing & Payments</h1>
 
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {error && <div className="alert alert-error">{error}</div>}
 
-      <h3>Generar Factura</h3>
-      <form onSubmit={generarFactura}>
-        <label>
-          Pedido ID:
+      <div className="card">
+        <div className="card-header">
+          <h2>Generar Factura</h2>
+        </div>
+        <form onSubmit={generarFactura}>
+          <label htmlFor="pedidoId">
+            Pedido ID:
+          </label>
           <input
+            id="pedidoId"
             type="number"
             value={genFacturaId}
             onChange={(e) => setGenFacturaId(e.target.value)}
             required
           />
-        </label>
-        {' '}
-        <button type="submit">Generar Factura</button>
-      </form>
+          <button type="submit" className="btn-primary">Generar Factura</button>
+        </form>
+      </div>
 
-      <h3>Facturas Existentes</h3>
-      {loading ? (
-        <p>Loading facturas...</p>
-      ) : (
-        <table border="1" cellPadding="5">
-          <thead>
-            <tr>
-              <th>Factura ID</th>
-              <th>Pedido ID</th>
-              <th>Fecha</th>
-              <th>Total</th>
-              <th>Estado</th>
-              <th>Pagos Count</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {facturas.length === 0 ? (
+      <div className="card">
+        <div className="card-header">
+          <h2>Facturas Existentes</h2>
+        </div>
+        {loading ? (
+          <div className="loading">Loading</div>
+        ) : (
+          <table>
+            <thead>
               <tr>
-                <td colSpan="7">No facturas found</td>
+                <th>Factura ID</th>
+                <th>Pedido ID</th>
+                <th>Fecha</th>
+                <th>Total</th>
+                <th>Estado</th>
+                <th>Pagos</th>
+                <th>Actions</th>
               </tr>
-            ) : (
-              facturas.map(factura => {
-                const pagoForm = pagoForms[factura.id] || {}
-                return (
-                  <tr key={factura.id}>
-                    <td>{factura.id}</td>
-                    <td>{factura.pedidoId}</td>
-                    <td>{new Date(factura.fechaHora).toLocaleString()}</td>
-                    <td>${factura.total.toFixed(2)}</td>
-                    <td><strong>{factura.estado}</strong></td>
-                    <td>{factura.pagos.length}</td>
-                    <td>
-                      {factura.estado === 'PENDIENTE' ? (
-                        <div>
-                          <label>
-                            Monto:
+            </thead>
+            <tbody>
+              {facturas.length === 0 ? (
+                <tr>
+                  <td colSpan="7">No facturas found</td>
+                </tr>
+              ) : (
+                facturas.map(factura => {
+                  const pagoForm = pagoForms[factura.id] || {}
+                  return (
+                    <tr key={factura.id}>
+                      <td>{factura.id}</td>
+                      <td>{factura.pedidoId}</td>
+                      <td>{new Date(factura.fechaHora).toLocaleString()}</td>
+                      <td>${factura.total.toFixed(2)}</td>
+                      <td>
+                        <span className={`badge ${
+                          factura.estado === 'PENDIENTE' ? 'badge-yellow' :
+                          factura.estado === 'PAGADO' ? 'badge-green' :
+                          'badge-gray'
+                        }`}>
+                          {factura.estado}
+                        </span>
+                      </td>
+                      <td>{factura.pagos.length} items</td>
+                      <td>
+                        {factura.estado === 'PENDIENTE' ? (
+                          <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                            <label htmlFor={`monto-${factura.id}`}>
+                              Monto:
+                            </label>
                             <input
+                              id={`monto-${factura.id}`}
                               type="number"
                               step="0.01"
                               value={pagoForm.monto || ''}
                               onChange={(e) => handlePagoFormChange(factura.id, 'monto', e.target.value)}
                               style={{ width: '80px' }}
                             />
-                          </label>
-                          {' '}
-                          <label>
-                            Método:
+                            <label htmlFor={`metodo-${factura.id}`}>
+                              Método:
+                            </label>
                             <select
+                              id={`metodo-${factura.id}`}
                               value={pagoForm.metodo || ''}
                               onChange={(e) => handlePagoFormChange(factura.id, 'metodo', e.target.value)}
                             >
@@ -227,21 +246,20 @@ function FacturasPage() {
                               <option value="EFECTIVO">EFECTIVO</option>
                               <option value="TARJETA">TARJETA</option>
                             </select>
-                          </label>
-                          {' '}
-                          <button onClick={() => registrarPago(factura.id)}>Registrar Pago</button>
-                        </div>
-                      ) : (
-                        <span>-</span>
-                      )}
-                    </td>
-                  </tr>
-                )
-              })
-            )}
-          </tbody>
-        </table>
-      )}
+                            <button onClick={() => registrarPago(factura.id)} className="btn-success btn-small">Registrar Pago</button>
+                          </div>
+                        ) : (
+                          <span>-</span>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })
+              )}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   )
 }

@@ -83,19 +83,19 @@ function CocinaPage() {
     switch (pedido.estado) {
       case 'PENDIENTE':
         return (
-          <button onClick={() => cambiarEstado(pedido.id, 'PREPARACION')}>
+          <button onClick={() => cambiarEstado(pedido.id, 'PREPARACION')} className="btn-primary btn-small">
             Pasar a PREPARACION
           </button>
         )
       case 'PREPARACION':
         return (
-          <button onClick={() => cambiarEstado(pedido.id, 'LISTO')}>
+          <button onClick={() => cambiarEstado(pedido.id, 'LISTO')} className="btn-success btn-small">
             Marcar como LISTO
           </button>
         )
       case 'LISTO':
         return (
-          <button onClick={() => cambiarEstado(pedido.id, 'ENTREGADO')}>
+          <button onClick={() => cambiarEstado(pedido.id, 'ENTREGADO')} className="btn-secondary btn-small">
             Marcar como ENTREGADO
           </button>
         )
@@ -108,59 +108,83 @@ function CocinaPage() {
 
   if (!isAuthenticated) {
     return (
-      <div>
-        <h2>Cocina</h2>
-        <p>You must log in to view this page</p>
-        <Link to="/login">Go to Login</Link>
+      <div className="centered-container">
+        <div className="card">
+          <h2>Cocina</h2>
+          <p>You must log in to view this page</p>
+          <Link to="/login" className="btn-primary">Go to Login</Link>
+        </div>
       </div>
     )
   }
 
   return (
     <div>
-      <h2>Cocina - Operations Board</h2>
-      <p style={{ fontSize: '12px', color: '#666' }}>Auto-refresh every 10 seconds</p>
+      <h1>Cocina - Operations Board</h1>
+      <p className="text-muted" style={{ fontSize: '0.9rem' }}>Auto-refresh every 10 seconds</p>
 
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {error && <div className="alert alert-error">{error}</div>}
 
-      {loading && pedidos.length === 0 ? (
-        <p>Loading active orders...</p>
-      ) : (
-        <table border="1" cellPadding="5">
-          <thead>
-            <tr>
-              <th>Pedido ID</th>
-              <th>Mesa ID</th>
-              <th>Estado</th>
-              <th>Fecha</th>
-              <th>Items Count</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pedidos.length === 0 ? (
+      <div className="card">
+        <div className="card-header">
+          <h2>Active Pedidos</h2>
+        </div>
+        {loading && pedidos.length === 0 ? (
+          <div className="loading">Loading</div>
+        ) : (
+          <table>
+            <thead>
               <tr>
-                <td colSpan="6">No active pedidos</td>
+                <th>Pedido ID</th>
+                <th>Mesa</th>
+                <th>Estado</th>
+                <th>Fecha</th>
+                <th>Items</th>
+                <th>Actions</th>
               </tr>
-            ) : (
-              pedidos.map(pedido => (
-                <tr key={pedido.id}>
-                  <td>{pedido.id}</td>
-                  <td>{pedido.mesaId} ({pedido.mesaCodigo})</td>
-                  <td><strong>{pedido.estado}</strong></td>
-                  <td>{new Date(pedido.fechaHora).toLocaleString()}</td>
-                  <td>{pedido.items.length}</td>
-                  <td>{getEstadoButton(pedido)}</td>
+            </thead>
+            <tbody>
+              {pedidos.length === 0 ? (
+                <tr>
+                  <td colSpan="6">No active pedidos</td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      )}
+              ) : (
+                pedidos.map(pedido => (
+                  <tr key={pedido.id}>
+                    <td>{pedido.id}</td>
+                    <td>{pedido.mesaCodigo} (ID: {pedido.mesaId})</td>
+                    <td>
+                      <span className={`badge ${
+                        pedido.estado === 'PENDIENTE' ? 'badge-yellow' :
+                        pedido.estado === 'PREPARACION' ? 'badge-blue' :
+                        pedido.estado === 'LISTO' ? 'badge-green' :
+                        'badge-gray'
+                      }`}>
+                        {pedido.estado}
+                      </span>
+                    </td>
+                    <td>{new Date(pedido.fechaHora).toLocaleString()}</td>
+                    <td>{pedido.items.length} items</td>
+                    <td>{getEstadoButton(pedido)}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        )}
+      </div>
 
-      <div style={{ marginTop: '20px', padding: '10px', backgroundColor: '#f5f5f5' }}>
+      <div className="card">
         <h3>Estado Workflow</h3>
-        <p>PENDIENTE → PREPARACION → LISTO → ENTREGADO</p>
+        <p>
+          <span className="badge badge-yellow">PENDIENTE</span>
+          {' → '}
+          <span className="badge badge-blue">PREPARACION</span>
+          {' → '}
+          <span className="badge badge-green">LISTO</span>
+          {' → '}
+          <span className="badge badge-gray">ENTREGADO</span>
+        </p>
       </div>
     </div>
   )

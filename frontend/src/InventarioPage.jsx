@@ -194,113 +194,125 @@ function InventarioPage() {
 
   if (!isAuthenticated) {
     return (
-      <div>
-        <h2>Inventario</h2>
-        <p>You must log in to view this page</p>
-        <Link to="/login">Go to Login</Link>
+      <div className="centered-container">
+        <div className="card">
+          <h2>Inventario</h2>
+          <p>You must log in to view this page</p>
+          <Link to="/login" className="btn-primary">Go to Login</Link>
+        </div>
       </div>
     )
   }
 
   return (
     <div>
-      <h2>Inventario - Inventory Management</h2>
+      <h1>Inventario - Inventory Management</h1>
 
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {error && <div className="alert alert-error">{error}</div>}
 
-      <hr />
-      <h3>SECTION A — Insumos (Ingredients)</h3>
+      <div className="card">
+        <div className="card-header">
+          <h2>SECTION A - Insumos (Ingredients)</h2>
+        </div>
 
-      <h4>Create New Insumo</h4>
-      <form onSubmit={handleCreateInsumo}>
-        <label>
-          Nombre:
+        <h3>Create New Insumo</h3>
+        <form onSubmit={handleCreateInsumo}>
+          <label htmlFor="insumo-nombre">
+            Nombre:
+          </label>
           <input
+            id="insumo-nombre"
             type="text"
             value={newInsumo.nombre}
             onChange={(e) => setNewInsumo({ ...newInsumo, nombre: e.target.value })}
             required
           />
-        </label>
-        {' '}
-        <label>
-          Unidad:
+          <label htmlFor="insumo-unidad">
+            Unidad:
+          </label>
           <input
+            id="insumo-unidad"
             type="text"
             value={newInsumo.unidad}
             onChange={(e) => setNewInsumo({ ...newInsumo, unidad: e.target.value })}
             placeholder="g, ml, unidad"
             required
           />
-        </label>
-        {' '}
-        <label>
-          Stock Actual:
+          <label htmlFor="insumo-stock-actual">
+            Stock Actual:
+          </label>
           <input
+            id="insumo-stock-actual"
             type="number"
             step="0.01"
             value={newInsumo.stockActual}
             onChange={(e) => setNewInsumo({ ...newInsumo, stockActual: parseFloat(e.target.value) })}
             required
           />
-        </label>
-        {' '}
-        <label>
-          Stock Mínimo:
+          <label htmlFor="insumo-stock-minimo">
+            Stock Mínimo:
+          </label>
           <input
+            id="insumo-stock-minimo"
             type="number"
             step="0.01"
             value={newInsumo.stockMinimo}
             onChange={(e) => setNewInsumo({ ...newInsumo, stockMinimo: parseFloat(e.target.value) })}
             required
           />
-        </label>
-        {' '}
-        <button type="submit">Create Insumo</button>
-      </form>
+          <button type="submit" className="btn-primary">Create Insumo</button>
+        </form>
 
-      <h4>Existing Insumos</h4>
-      {loading ? (
-        <p>Loading...</p>
-      ) : (
-        <table border="1" cellPadding="5">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Nombre</th>
-              <th>Unidad</th>
-              <th>Stock Actual</th>
-              <th>Stock Mínimo</th>
-            </tr>
-          </thead>
-          <tbody>
-            {insumos.length === 0 ? (
+        <h3>Existing Insumos</h3>
+        {loading ? (
+          <div className="loading">Loading</div>
+        ) : (
+          <table>
+            <thead>
               <tr>
-                <td colSpan="5">No insumos found</td>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Unidad</th>
+                <th>Stock Actual</th>
+                <th>Stock Mínimo</th>
               </tr>
-            ) : (
-              insumos.map(insumo => (
-                <tr key={insumo.id} style={{ backgroundColor: insumo.stockActual < insumo.stockMinimo ? '#ffcccc' : 'white' }}>
-                  <td>{insumo.id}</td>
-                  <td>{insumo.nombre}</td>
-                  <td>{insumo.unidad}</td>
-                  <td>{insumo.stockActual}</td>
-                  <td>{insumo.stockMinimo}</td>
+            </thead>
+            <tbody>
+              {insumos.length === 0 ? (
+                <tr>
+                  <td colSpan="5">No insumos found</td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      )}
+              ) : (
+                insumos.map(insumo => (
+                  <tr key={insumo.id}>
+                    <td>{insumo.id}</td>
+                    <td>{insumo.nombre}</td>
+                    <td>{insumo.unidad}</td>
+                    <td className={insumo.stockActual < insumo.stockMinimo ? 'low-stock' : ''}>
+                      {insumo.stockActual}
+                      {insumo.stockActual < insumo.stockMinimo && ' ⚠️'}
+                    </td>
+                    <td>{insumo.stockMinimo}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        )}
+      </div>
 
-      <hr />
-      <h3>SECTION B — Movimientos de Insumo (Stock Movements)</h3>
+      <div className="card">
+        <div className="card-header">
+          <h2>SECTION B - Movimientos de Insumo (Stock Movements)</h2>
+        </div>
 
-      <h4>Register Movement</h4>
-      <form onSubmit={handleCreateMovimiento}>
-        <label>
-          Insumo:
+        <h3>Register Movement</h3>
+        <form onSubmit={handleCreateMovimiento}>
+          <label htmlFor="movimiento-insumo">
+            Insumo:
+          </label>
           <select
+            id="movimiento-insumo"
             value={newMovimiento.insumoId}
             onChange={(e) => setNewMovimiento({ ...newMovimiento, insumoId: e.target.value })}
             required
@@ -312,83 +324,94 @@ function InventarioPage() {
               </option>
             ))}
           </select>
-        </label>
-        {' '}
-        <label>
-          Cantidad:
+          <label htmlFor="movimiento-cantidad">
+            Cantidad:
+          </label>
           <input
+            id="movimiento-cantidad"
             type="number"
             step="0.01"
             value={newMovimiento.cantidad}
             onChange={(e) => setNewMovimiento({ ...newMovimiento, cantidad: parseFloat(e.target.value) })}
             required
           />
-        </label>
-        {' '}
-        <label>
-          Tipo:
+          <label htmlFor="movimiento-tipo">
+            Tipo:
+          </label>
           <select
+            id="movimiento-tipo"
             value={newMovimiento.tipo}
             onChange={(e) => setNewMovimiento({ ...newMovimiento, tipo: e.target.value })}
           >
             <option value="COMPRA">COMPRA</option>
             <option value="AJUSTE">AJUSTE</option>
           </select>
-        </label>
-        {' '}
-        <label>
-          Descripción:
+          <label htmlFor="movimiento-descripcion">
+            Descripción:
+          </label>
           <input
+            id="movimiento-descripcion"
             type="text"
             value={newMovimiento.descripcion}
             onChange={(e) => setNewMovimiento({ ...newMovimiento, descripcion: e.target.value })}
             placeholder="Optional description"
           />
-        </label>
-        {' '}
-        <button type="submit">Register Movement</button>
-      </form>
+          <button type="submit" className="btn-primary">Register Movement</button>
+        </form>
 
-      <h4>Recent Movimientos</h4>
-      <table border="1" cellPadding="5">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Insumo</th>
-            <th>Cantidad</th>
-            <th>Tipo</th>
-            <th>Fecha</th>
-            <th>Descripción</th>
-          </tr>
-        </thead>
-        <tbody>
-          {movimientos.length === 0 ? (
+        <h3>Recent Movimientos</h3>
+        <table>
+          <thead>
             <tr>
-              <td colSpan="6">No movimientos found</td>
+              <th>ID</th>
+              <th>Insumo</th>
+              <th>Cantidad</th>
+              <th>Tipo</th>
+              <th>Fecha</th>
+              <th>Descripción</th>
             </tr>
-          ) : (
-            movimientos.slice().reverse().slice(0, 20).map(mov => (
-              <tr key={mov.id}>
-                <td>{mov.id}</td>
-                <td>{mov.insumoNombre}</td>
-                <td style={{ color: mov.cantidad >= 0 ? 'green' : 'red' }}>{mov.cantidad}</td>
-                <td>{mov.tipo}</td>
-                <td>{new Date(mov.fechaHora).toLocaleString()}</td>
-                <td>{mov.descripcion}</td>
+          </thead>
+          <tbody>
+            {movimientos.length === 0 ? (
+              <tr>
+                <td colSpan="6">No movimientos found</td>
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+            ) : (
+              movimientos.slice().reverse().slice(0, 20).map(mov => (
+                <tr key={mov.id}>
+                  <td>{mov.id}</td>
+                  <td>{mov.insumoNombre}</td>
+                  <td style={{ color: mov.cantidad >= 0 ? 'green' : 'red', fontWeight: '500' }}>{mov.cantidad}</td>
+                  <td>
+                    <span className={`badge ${
+                      mov.tipo === 'COMPRA' ? 'badge-green' :
+                      mov.tipo === 'AJUSTE' ? 'badge-blue' :
+                      'badge-gray'
+                    }`}>
+                      {mov.tipo}
+                    </span>
+                  </td>
+                  <td>{new Date(mov.fechaHora).toLocaleString()}</td>
+                  <td>{mov.descripcion}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
 
-      <hr />
-      <h3>SECTION C — Recetas (Recipes)</h3>
+      <div className="card">
+        <div className="card-header">
+          <h2>SECTION C - Recetas (Recipes)</h2>
+        </div>
 
-      <h4>Create New Receta</h4>
-      <form onSubmit={handleCreateReceta}>
-        <label>
-          Producto:
+        <h3>Create New Receta</h3>
+        <form onSubmit={handleCreateReceta}>
+          <label htmlFor="receta-producto">
+            Producto:
+          </label>
           <select
+            id="receta-producto"
             value={newReceta.productoId}
             onChange={(e) => setNewReceta({ ...newReceta, productoId: e.target.value })}
             required
@@ -400,14 +423,15 @@ function InventarioPage() {
               </option>
             ))}
           </select>
-        </label>
 
-        <h5>Recipe Items:</h5>
-        {newReceta.items.map((item, index) => (
-          <div key={index} style={{ marginBottom: '10px' }}>
-            <label>
-              Insumo:
+          <h4>Recipe Items:</h4>
+          {newReceta.items.map((item, index) => (
+            <div key={index} style={{ marginBottom: '10px', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}>
+              <label htmlFor={`receta-insumo-${index}`}>
+                Insumo:
+              </label>
               <select
+                id={`receta-insumo-${index}`}
                 value={item.insumoId}
                 onChange={(e) => updateRecetaItem(index, 'insumoId', e.target.value)}
                 required
@@ -419,63 +443,63 @@ function InventarioPage() {
                   </option>
                 ))}
               </select>
-            </label>
-            {' '}
-            <label>
-              Cantidad Necesaria:
+              <label htmlFor={`receta-cantidad-${index}`}>
+                Cantidad Necesaria:
+              </label>
               <input
+                id={`receta-cantidad-${index}`}
                 type="number"
                 step="0.01"
                 value={item.cantidadNecesaria}
                 onChange={(e) => updateRecetaItem(index, 'cantidadNecesaria', parseFloat(e.target.value))}
                 required
+                style={{ width: '100px' }}
               />
-            </label>
-            {' '}
-            {newReceta.items.length > 1 && (
-              <button type="button" onClick={() => removeRecetaItem(index)}>Remove</button>
-            )}
-          </div>
-        ))}
+              {newReceta.items.length > 1 && (
+                <button type="button" onClick={() => removeRecetaItem(index)} className="btn-danger btn-small" style={{ marginLeft: '10px' }}>Remove</button>
+              )}
+            </div>
+          ))}
 
-        <button type="button" onClick={addRecetaItem}>Add Item</button>
-        {' '}
-        <button type="submit">Create Receta</button>
-      </form>
+          <button type="button" onClick={addRecetaItem} className="btn-secondary">Add Item</button>
+          {' '}
+          <button type="submit" className="btn-primary">Create Receta</button>
+        </form>
 
-      <h4>Existing Recetas</h4>
-      <table border="1" cellPadding="5">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Producto</th>
-            <th>Ingredients</th>
-          </tr>
-        </thead>
-        <tbody>
-          {recetas.length === 0 ? (
+        <h3>Existing Recetas</h3>
+        <table>
+          <thead>
             <tr>
-              <td colSpan="3">No recetas found</td>
+              <th>ID</th>
+              <th>Producto</th>
+              <th>Ingredients</th>
             </tr>
-          ) : (
-            recetas.map(receta => (
-              <tr key={receta.id}>
-                <td>{receta.id}</td>
-                <td>{receta.productoNombre}</td>
-                <td>
-                  <ul>
-                    {receta.items.map((item, idx) => (
-                      <li key={idx}>
-                        {item.insumoNombre}: {item.cantidadNecesaria}
-                      </li>
-                    ))}
-                  </ul>
-                </td>
+          </thead>
+          <tbody>
+            {recetas.length === 0 ? (
+              <tr>
+                <td colSpan="3">No recetas found</td>
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+            ) : (
+              recetas.map(receta => (
+                <tr key={receta.id}>
+                  <td>{receta.id}</td>
+                  <td>{receta.productoNombre}</td>
+                  <td>
+                    <ul style={{ margin: '0', paddingLeft: '20px' }}>
+                      {receta.items.map((item, idx) => (
+                        <li key={idx}>
+                          {item.insumoNombre}: {item.cantidadNecesaria}
+                        </li>
+                      ))}
+                    </ul>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }

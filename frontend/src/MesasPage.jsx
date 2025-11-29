@@ -12,6 +12,7 @@ function MesasPage() {
     estado: 'disponible'
   })
   const [createError, setCreateError] = useState(null)
+  const [success, setSuccess] = useState(null)
   const { isAuthenticated, getAuthHeader } = useAuth()
   const navigate = useNavigate()
 
@@ -48,6 +49,7 @@ function MesasPage() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setCreateError(null)
+    setSuccess(null)
 
     try {
       const response = await fetch('/api/mesas', {
@@ -69,6 +71,7 @@ function MesasPage() {
       }
       if (!response.ok) throw new Error('Error creating mesa')
 
+      setSuccess(`Mesa "${formData.codigo}" created successfully!`)
       setFormData({ codigo: '', capacidad: '', estado: 'disponible' })
       fetchMesas()
     } catch (err) {
@@ -78,9 +81,12 @@ function MesasPage() {
 
   if (!isAuthenticated) {
     return (
-      <div>
-        <p>You must log in to view this page.</p>
-        <Link to="/login">Go to Login</Link>
+      <div className="centered-container">
+        <div className="card">
+          <h2>Authentication Required</h2>
+          <p>You must log in to view this page.</p>
+          <Link to="/login" className="btn-primary">Go to Login</Link>
+        </div>
       </div>
     )
   }
@@ -92,80 +98,108 @@ function MesasPage() {
     })
   }
 
-  if (loading) return <div>Loading mesas...</div>
-  if (error) return <div>Error: {error}</div>
+  if (loading) return <div className="loading">Loading mesas</div>
+  if (error) return <div className="alert alert-error">Error: {error}</div>
 
   return (
     <div>
       <h1>Mesas</h1>
 
-      <h2>Create New Mesa</h2>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>
-            Codigo:
-            <input
-              type="text"
-              name="codigo"
-              value={formData.codigo}
-              onChange={handleChange}
-              required
-            />
-          </label>
+      <div className="card">
+        <div className="card-header">
+          <h2>Crear Nueva Mesa</h2>
         </div>
-        <div>
-          <label>
-            Capacidad:
-            <input
-              type="number"
-              name="capacidad"
-              value={formData.capacidad}
-              onChange={handleChange}
-              required
-            />
-          </label>
-        </div>
-        <div>
-          <label>
-            Estado:
-            <input
-              type="text"
-              name="estado"
-              value={formData.estado}
-              onChange={handleChange}
-              required
-            />
-          </label>
-        </div>
-        <button type="submit">Create Mesa</button>
-      </form>
-      {createError && <div>Error: {createError}</div>}
 
-      <h2>Mesa List</h2>
-      {mesas.length === 0 ? (
-        <p>No mesas found</p>
-      ) : (
-        <table border="1">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Codigo</th>
-              <th>Capacidad</th>
-              <th>Estado</th>
-            </tr>
-          </thead>
-          <tbody>
-            {mesas.map((mesa) => (
-              <tr key={mesa.id}>
-                <td>{mesa.id}</td>
-                <td>{mesa.codigo}</td>
-                <td>{mesa.capacidad}</td>
-                <td>{mesa.estado}</td>
+        {success && <div className="alert alert-success">{success}</div>}
+        {createError && <div className="alert alert-error">{createError}</div>}
+
+        <form onSubmit={handleSubmit}>
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="codigo">Código</label>
+              <input
+                id="codigo"
+                type="text"
+                name="codigo"
+                value={formData.codigo}
+                onChange={handleChange}
+                placeholder="ej: MESA-01"
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="capacidad">Capacidad</label>
+              <input
+                id="capacidad"
+                type="number"
+                name="capacidad"
+                value={formData.capacidad}
+                onChange={handleChange}
+                placeholder="ej: 4"
+                min="1"
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="estado">Estado</label>
+              <select
+                id="estado"
+                name="estado"
+                value={formData.estado}
+                onChange={handleChange}
+                required
+              >
+                <option value="disponible">Disponible</option>
+                <option value="ocupada">Ocupada</option>
+                <option value="reservada">Reservada</option>
+              </select>
+            </div>
+          </div>
+
+          <button type="submit" className="btn-primary">Crear Mesa</button>
+        </form>
+      </div>
+
+      <div className="card">
+        <div className="card-header">
+          <h2>Listado de Mesas</h2>
+        </div>
+
+        {mesas.length === 0 ? (
+          <p className="text-muted">No hay mesas registradas</p>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Código</th>
+                <th>Capacidad</th>
+                <th>Estado</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+            </thead>
+            <tbody>
+              {mesas.map((mesa) => (
+                <tr key={mesa.id}>
+                  <td>{mesa.id}</td>
+                  <td><strong>{mesa.codigo}</strong></td>
+                  <td>{mesa.capacidad} personas</td>
+                  <td>
+                    <span className={`badge ${
+                      mesa.estado === 'disponible' ? 'badge-green' :
+                      mesa.estado === 'ocupada' ? 'badge-red' :
+                      'badge-yellow'
+                    }`}>
+                      {mesa.estado.toUpperCase()}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   )
 }

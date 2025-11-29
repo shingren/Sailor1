@@ -87,49 +87,59 @@ function ProductosPage() {
 
   if (!isAuthenticated) {
     return (
-      <div>
-        <p>You must log in to view this page.</p>
-        <Link to="/login">Go to Login</Link>
+      <div className="centered-container">
+        <div className="card">
+          <h2>Productos</h2>
+          <p>You must log in to view this page.</p>
+          <Link to="/login" className="btn-primary">Go to Login</Link>
+        </div>
       </div>
     )
   }
 
-  if (loading) return <div>Loading productos...</div>
-  if (error) return <div>Error: {error}</div>
+  if (loading) return <div className="loading">Loading</div>
+  if (error) return <div className="alert alert-error">{error}</div>
 
   return (
     <div>
       <h1>Productos</h1>
 
-      <h2>Create New Producto</h2>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>
-            Nombre:
+      <div className="card">
+        <div className="card-header">
+          <h2>Create New Producto</h2>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div>
+            <label htmlFor="nombre">
+              Nombre:
+            </label>
             <input
+              id="nombre"
               type="text"
               name="nombre"
               value={formData.nombre}
               onChange={handleChange}
               required
             />
-          </label>
-        </div>
-        <div>
-          <label>
-            Categoria:
+          </div>
+          <div>
+            <label htmlFor="categoria">
+              Categoria:
+            </label>
             <input
+              id="categoria"
               type="text"
               name="categoria"
               value={formData.categoria}
               onChange={handleChange}
             />
-          </label>
-        </div>
-        <div>
-          <label>
-            Precio:
+          </div>
+          <div>
+            <label htmlFor="precio">
+              Precio:
+            </label>
             <input
+              id="precio"
               type="number"
               step="0.01"
               name="precio"
@@ -137,50 +147,61 @@ function ProductosPage() {
               onChange={handleChange}
               required
             />
-          </label>
-        </div>
-        <div>
-          <label>
-            Activo:
-            <input
-              type="checkbox"
-              name="activo"
-              checked={formData.activo}
-              onChange={handleChange}
-            />
-          </label>
-        </div>
-        <button type="submit">Create Producto</button>
-      </form>
-      {createError && <div>Error: {createError}</div>}
+          </div>
+          <div>
+            <label htmlFor="activo">
+              Activo:
+              <input
+                id="activo"
+                type="checkbox"
+                name="activo"
+                checked={formData.activo}
+                onChange={handleChange}
+              />
+            </label>
+          </div>
+          <button type="submit" className="btn-primary">Create Producto</button>
+        </form>
+        {createError && <div className="alert alert-error">{createError}</div>}
+      </div>
 
-      <h2>Producto List</h2>
-      {productos.length === 0 ? (
-        <p>No productos found</p>
-      ) : (
-        <table border="1">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Nombre</th>
-              <th>Categoria</th>
-              <th>Precio</th>
-              <th>Activo</th>
-            </tr>
-          </thead>
-          <tbody>
-            {productos.map((producto) => (
-              <tr key={producto.id}>
-                <td>{producto.id}</td>
-                <td>{producto.nombre}</td>
-                <td>{producto.categoria || '-'}</td>
-                <td>${producto.precio.toFixed(2)}</td>
-                <td>{producto.activo ? 'Yes' : 'No'}</td>
+      <div className="card">
+        <div className="card-header">
+          <h2>Producto List</h2>
+        </div>
+        {productos.length === 0 ? (
+          <p>No productos found</p>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Categoria</th>
+                <th>Precio</th>
+                <th>Activo</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+            </thead>
+            <tbody>
+              {productos.map((producto) => (
+                <tr key={producto.id}>
+                  <td>{producto.id}</td>
+                  <td>{producto.nombre}</td>
+                  <td>{producto.categoria || '-'}</td>
+                  <td>${producto.precio.toFixed(2)}</td>
+                  <td>
+                    {producto.activo ? (
+                      <span className="badge badge-green">Active</span>
+                    ) : (
+                      <span className="badge badge-gray">Inactive</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   )
 }

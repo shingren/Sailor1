@@ -183,63 +183,83 @@ function PedidosPage() {
 
   if (!isAuthenticated) {
     return (
-      <div>
-        <h2>Pedidos</h2>
-        <p>You must log in to view this page</p>
-        <Link to="/login">Go to Login</Link>
+      <div className="centered-container">
+        <div className="card">
+          <h2>Pedidos</h2>
+          <p>You must log in to view this page</p>
+          <Link to="/login" className="btn-primary">Go to Login</Link>
+        </div>
       </div>
     )
   }
 
   return (
     <div>
-      <h2>Pedidos</h2>
+      <h1>Pedidos</h1>
 
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {error && <div className="alert alert-error">{error}</div>}
 
-      <h3>Existing Pedidos</h3>
-      {loading ? (
-        <p>Loading pedidos...</p>
-      ) : (
-        <table border="1" cellPadding="5">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Mesa ID</th>
-              <th>Estado</th>
-              <th>Fecha</th>
-              <th>Items Count</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pedidos.length === 0 ? (
+      <div className="card">
+        <div className="card-header">
+          <h2>Existing Pedidos</h2>
+        </div>
+        {loading ? (
+          <div className="loading">Loading</div>
+        ) : (
+          <table>
+            <thead>
               <tr>
-                <td colSpan="5">No pedidos found</td>
+                <th>ID</th>
+                <th>Mesa</th>
+                <th>Estado</th>
+                <th>Fecha</th>
+                <th>Items</th>
               </tr>
-            ) : (
-              pedidos.map(pedido => (
-                <tr key={pedido.id}>
-                  <td>{pedido.id}</td>
-                  <td>{pedido.mesaId} ({pedido.mesaCodigo})</td>
-                  <td>{pedido.estado}</td>
-                  <td>{new Date(pedido.fechaHora).toLocaleString()}</td>
-                  <td>{pedido.items.length}</td>
+            </thead>
+            <tbody>
+              {pedidos.length === 0 ? (
+                <tr>
+                  <td colSpan="5">No pedidos found</td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      )}
+              ) : (
+                pedidos.map(pedido => (
+                  <tr key={pedido.id}>
+                    <td>{pedido.id}</td>
+                    <td>{pedido.mesaCodigo} (ID: {pedido.mesaId})</td>
+                    <td>
+                      <span className={`badge ${
+                        pedido.estado === 'PENDIENTE' ? 'badge-yellow' :
+                        pedido.estado === 'PREPARACION' ? 'badge-blue' :
+                        pedido.estado === 'LISTO' ? 'badge-green' :
+                        'badge-gray'
+                      }`}>
+                        {pedido.estado}
+                      </span>
+                    </td>
+                    <td>{new Date(pedido.fechaHora).toLocaleString()}</td>
+                    <td>{pedido.items.length} items</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        )}
+      </div>
 
-      <h3>Create New Pedido</h3>
-      {loadingMesas || loadingProductos ? (
-        <p>Loading form data...</p>
-      ) : (
-        <form onSubmit={handleSubmit}>
-          <div>
-            <label>
-              Mesa:
+      <div className="card">
+        <div className="card-header">
+          <h2>Create New Pedido</h2>
+        </div>
+        {loadingMesas || loadingProductos ? (
+          <div className="loading">Loading</div>
+        ) : (
+          <form onSubmit={handleSubmit}>
+            <div>
+              <label htmlFor="mesaId">
+                Mesa:
+              </label>
               <select
+                id="mesaId"
                 name="mesaId"
                 value={formData.mesaId}
                 onChange={handleInputChange}
@@ -252,30 +272,30 @@ function PedidosPage() {
                   </option>
                 ))}
               </select>
-            </label>
-          </div>
+            </div>
 
-          <div style={{ marginTop: '10px' }}>
-            <label>
-              Observaciones:
-              <br />
+            <div>
+              <label htmlFor="observaciones">
+                Observaciones:
+              </label>
               <textarea
+                id="observaciones"
                 name="observaciones"
                 value={formData.observaciones}
                 onChange={handleInputChange}
                 rows="3"
-                cols="40"
               />
-            </label>
-          </div>
+            </div>
 
-          <div style={{ marginTop: '10px' }}>
-            <strong>Items:</strong>
-            {formData.items.map((item, index) => (
-              <div key={index} style={{ marginTop: '5px', padding: '5px', border: '1px solid #ccc' }}>
-                <label>
-                  Producto:
+            <div style={{ marginTop: '10px' }}>
+              <strong>Items:</strong>
+              {formData.items.map((item, index) => (
+                <div key={index} style={{ marginTop: '10px', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}>
+                  <label htmlFor={`producto-${index}`}>
+                    Producto:
+                  </label>
                   <select
+                    id={`producto-${index}`}
                     value={item.productoId}
                     onChange={(e) => handleItemChange(index, 'productoId', e.target.value)}
                     required
@@ -287,33 +307,34 @@ function PedidosPage() {
                       </option>
                     ))}
                   </select>
-                </label>
-                {' '}
-                <label>
-                  Cantidad:
+
+                  <label htmlFor={`cantidad-${index}`}>
+                    Cantidad:
+                  </label>
                   <input
+                    id={`cantidad-${index}`}
                     type="number"
                     value={item.cantidad}
                     onChange={(e) => handleItemChange(index, 'cantidad', e.target.value)}
                     min="1"
                     required
-                    style={{ width: '60px' }}
+                    style={{ width: '80px' }}
                   />
-                </label>
-                {' '}
-                {formData.items.length > 1 && (
-                  <button type="button" onClick={() => removeItem(index)}>Remove</button>
-                )}
-              </div>
-            ))}
-            <button type="button" onClick={addItem} style={{ marginTop: '5px' }}>Add Item</button>
-          </div>
 
-          <div style={{ marginTop: '10px' }}>
-            <button type="submit">Create Pedido</button>
-          </div>
-        </form>
-      )}
+                  {formData.items.length > 1 && (
+                    <button type="button" onClick={() => removeItem(index)} className="btn-danger btn-small" style={{ marginLeft: '10px' }}>Remove</button>
+                  )}
+                </div>
+              ))}
+              <button type="button" onClick={addItem} className="btn-secondary" style={{ marginTop: '10px' }}>Add Item</button>
+            </div>
+
+            <div style={{ marginTop: '15px' }}>
+              <button type="submit" className="btn-primary">Create Pedido</button>
+            </div>
+          </form>
+        )}
+      </div>
     </div>
   )
 }
