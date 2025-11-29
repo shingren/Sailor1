@@ -71,18 +71,45 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
+                // Public endpoints
                 .requestMatchers("/health").permitAll()
                 .requestMatchers("/auth/**").permitAll()
-                .requestMatchers("/mesas/**").authenticated()
-                .requestMatchers("/productos/**").authenticated()
-                .requestMatchers("/pedidos/**").authenticated()
-                .requestMatchers("/facturas/**").authenticated()
-                .requestMatchers("/pagos/**").authenticated()
-                .requestMatchers("/insumos/**").authenticated()
-                .requestMatchers("/recetas/**").authenticated()
-                .requestMatchers("/reservas/**").authenticated()
-                .requestMatchers("/reportes/**").authenticated()
-                .anyRequest().authenticated()
+
+                // Staff Management - ADMIN only
+                .requestMatchers("/usuarios/**").hasRole("ADMIN")
+
+                // MESAS - ADMIN, MESERO
+                .requestMatchers("/mesas/**").hasAnyRole("ADMIN", "MESERO")
+
+                // PRODUCTOS - ADMIN only
+                .requestMatchers("/productos/**").hasRole("ADMIN")
+
+                // PEDIDOS - Special handling for COCINA role
+                .requestMatchers("/pedidos/activos").hasAnyRole("ADMIN", "MESERO", "COCINA")
+                .requestMatchers("/pedidos/*/estado").hasAnyRole("ADMIN", "MESERO", "COCINA")
+                .requestMatchers("/pedidos/**").hasAnyRole("ADMIN", "MESERO")
+
+                // FACTURAS - ADMIN, CAJA
+                .requestMatchers("/facturas/**").hasAnyRole("ADMIN", "CAJA")
+
+                // PAGOS - ADMIN, CAJA
+                .requestMatchers("/pagos/**").hasAnyRole("ADMIN", "CAJA")
+
+                // INVENTARIO - ADMIN, INVENTARIO
+                .requestMatchers("/insumos/**").hasAnyRole("ADMIN", "INVENTARIO")
+                .requestMatchers("/recetas/**").hasAnyRole("ADMIN", "INVENTARIO")
+
+                // RESERVAS - ADMIN, MESERO
+                .requestMatchers("/reservas/**").hasAnyRole("ADMIN", "MESERO")
+
+                // REPORTES - ADMIN, GERENCIA
+                .requestMatchers("/reportes/**").hasAnyRole("ADMIN", "GERENCIA")
+
+                // CIERRE CAJA - ADMIN, CAJA
+                .requestMatchers("/cierre-caja/**").hasAnyRole("ADMIN", "CAJA")
+
+                // All other endpoints require ADMIN
+                .anyRequest().hasRole("ADMIN")
             )
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)

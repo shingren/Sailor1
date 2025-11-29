@@ -10,9 +10,23 @@ import InventarioPage from './InventarioPage'
 import ReservasPage from './ReservasPage'
 import ReportesPage from './ReportesPage'
 import LoginPage from './LoginPage'
+import NotAuthorized from './NotAuthorized'
+import StaffPage from './StaffPage'
+import CierreCajaPage from './CierreCajaPage'
+
+// Helper component for role-based route protection
+function ProtectedRoute({ children, allowedRoles }) {
+  const { rol } = useAuth()
+
+  if (!allowedRoles.includes(rol)) {
+    return <NotAuthorized />
+  }
+
+  return children
+}
 
 function App() {
-  const { isAuthenticated, email, logout } = useAuth()
+  const { isAuthenticated, email, rol, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -24,6 +38,7 @@ function App() {
   // Don't show navbar on login page
   const showNav = location.pathname !== '/login'
 
+  // Show login button when not authenticated
   return (
     <div className="app-container">
       {showNav && (
@@ -40,13 +55,21 @@ function App() {
               <Link to="/inventario">Inventario</Link>
               <Link to="/reservas">Reservas</Link>
               <Link to="/reportes">Reportes</Link>
+              {(rol === 'ADMIN' || rol === 'CAJA') && <Link to="/cierre-caja">Cierre de Caja</Link>}
+              {rol === 'ADMIN' && <Link to="/staff">Staff</Link>}
             </div>
-            {isAuthenticated && (
+            {isAuthenticated ? (
               <div className="navbar-user">
                 <span className="navbar-email">{email}</span>
                 <button onClick={handleLogout} className="btn-secondary btn-small">
                   Logout
                 </button>
+              </div>
+            ) : (
+              <div className="navbar-user">
+                <Link to="/login" className="btn-primary btn-small">
+                  Login
+                </Link>
               </div>
             )}
           </div>
@@ -57,14 +80,76 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/mesas" element={<MesasPage />} />
-          <Route path="/productos" element={<ProductosPage />} />
-          <Route path="/pedidos" element={<PedidosPage />} />
-          <Route path="/cocina" element={<CocinaPage />} />
-          <Route path="/facturas" element={<FacturasPage />} />
-          <Route path="/inventario" element={<InventarioPage />} />
-          <Route path="/reservas" element={<ReservasPage />} />
-          <Route path="/reportes" element={<ReportesPage />} />
+
+          {/* MESAS - ADMIN, MESERO */}
+          <Route path="/mesas" element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'MESERO']}>
+              <MesasPage />
+            </ProtectedRoute>
+          } />
+
+          {/* PRODUCTOS - ADMIN only */}
+          <Route path="/productos" element={
+            <ProtectedRoute allowedRoles={['ADMIN']}>
+              <ProductosPage />
+            </ProtectedRoute>
+          } />
+
+          {/* PEDIDOS - ADMIN, MESERO */}
+          <Route path="/pedidos" element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'MESERO']}>
+              <PedidosPage />
+            </ProtectedRoute>
+          } />
+
+          {/* COCINA - ADMIN, MESERO, COCINA */}
+          <Route path="/cocina" element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'MESERO', 'COCINA']}>
+              <CocinaPage />
+            </ProtectedRoute>
+          } />
+
+          {/* FACTURAS - ADMIN, CAJA */}
+          <Route path="/facturas" element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'CAJA']}>
+              <FacturasPage />
+            </ProtectedRoute>
+          } />
+
+          {/* INVENTARIO - ADMIN, INVENTARIO */}
+          <Route path="/inventario" element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'INVENTARIO']}>
+              <InventarioPage />
+            </ProtectedRoute>
+          } />
+
+          {/* RESERVAS - ADMIN, MESERO */}
+          <Route path="/reservas" element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'MESERO']}>
+              <ReservasPage />
+            </ProtectedRoute>
+          } />
+
+          {/* REPORTES - ADMIN, GERENCIA */}
+          <Route path="/reportes" element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'GERENCIA']}>
+              <ReportesPage />
+            </ProtectedRoute>
+          } />
+
+          {/* CIERRE CAJA - ADMIN, CAJA */}
+          <Route path="/cierre-caja" element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'CAJA']}>
+              <CierreCajaPage />
+            </ProtectedRoute>
+          } />
+
+          {/* STAFF - ADMIN only */}
+          <Route path="/staff" element={
+            <ProtectedRoute allowedRoles={['ADMIN']}>
+              <StaffPage />
+            </ProtectedRoute>
+          } />
         </Routes>
       </div>
     </div>

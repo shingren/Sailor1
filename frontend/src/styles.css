@@ -374,6 +374,11 @@ tbody tr:last-child td {
   color: #842029;
 }
 
+.badge-purple {
+  background-color: #e0cffc;
+  color: #59359a;
+}
+
 /* Loading */
 .loading {
   text-align: center;

@@ -1,6 +1,8 @@
 package com.sailor.controller;
 
 import com.sailor.dto.*;
+import com.sailor.entity.Usuario;
+import com.sailor.repository.UsuarioRepository;
 import com.sailor.service.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -25,6 +27,9 @@ public class AuthController {
     @Autowired
     private UserDetailsService userDetailsService;
 
+    @Autowired
+    private UsuarioRepository usuarioRepository;
+
     @PostMapping("/login")
     public LoginResponseDTO login(@RequestBody LoginRequestDTO request) {
         try {
@@ -34,10 +39,14 @@ public class AuthController {
 
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
 
-            String accessToken = jwtUtil.generateAccessToken(userDetails);
-            String refreshToken = jwtUtil.generateRefreshToken(userDetails);
+            // Get Usuario to extract rol
+            Usuario usuario = usuarioRepository.findByEmail(userDetails.getUsername())
+                    .orElseThrow(() -> new RuntimeException("User not found"));
 
-            return new LoginResponseDTO(accessToken, refreshToken, userDetails.getUsername());
+            String accessToken = jwtUtil.generateAccessToken(usuario.getEmail(), usuario.getRol());
+            String refreshToken = jwtUtil.generateRefreshToken(usuario.getEmail(), usuario.getRol());
+
+            return new LoginResponseDTO(accessToken, refreshToken, usuario.getEmail(), usuario.getRol());
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
         }
@@ -53,9 +62,9 @@ public class AuthController {
             }
 
             String username = jwtUtil.extractUsername(refreshToken);
-            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+            String rol = jwtUtil.extractRol(refreshToken);
 
-            String newAccessToken = jwtUtil.generateAccessToken(userDetails);
+            String newAccessToken = jwtUtil.generateAccessToken(username, rol);
 
             return new RefreshTokenResponseDTO(newAccessToken);
         } catch (Exception e) {

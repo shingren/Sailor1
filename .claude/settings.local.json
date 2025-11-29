@@ -7,7 +7,10 @@
       "Bash(docker logs:*)",
       "Bash(docker exec:*)",
       "Bash(docker wait:*)",
-      "Bash(tee:*)"
+      "Bash(tee:*)",
+      "Bash(python -c \"import sys, json; print(json.load(open(''/tmp/login_response.json''))[''accessToken''])\")",
+      "Bash(pkill:*)",
+      "Bash(pkill -f \"docker logs\")"
     ],
     "deny": [],
     "ask": []

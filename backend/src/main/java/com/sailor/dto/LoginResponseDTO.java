@@ -4,13 +4,15 @@ public class LoginResponseDTO {
     private String accessToken;
     private String refreshToken;
     private String email;
+    private String rol;
 
     public LoginResponseDTO() {}
 
-    public LoginResponseDTO(String accessToken, String refreshToken, String email) {
+    public LoginResponseDTO(String accessToken, String refreshToken, String email, String rol) {
         this.accessToken = accessToken;
         this.refreshToken = refreshToken;
         this.email = email;
+        this.rol = rol;
     }
 
     public String getAccessToken() {
@@ -35,5 +37,13 @@ public class LoginResponseDTO {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getRol() {
+        return rol;
+    }
+
+    public void setRol(String rol) {
+        this.rol = rol;
     }
 }
