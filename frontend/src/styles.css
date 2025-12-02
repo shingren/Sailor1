@@ -268,15 +268,15 @@ p {
   position: sticky;
   top: 0;
   z-index: 100;
+  margin-left: var(--sidebar-width);
+  transition: margin-left var(--transition-base);
 }
 
 .top-bar-content {
-  max-width: 1400px;
-  margin: 0 auto;
   padding: var(--spacing-lg) var(--spacing-xl);
   display: flex;
   gap: var(--spacing-xl);
-  justify-content: flex-start;
+  justify-content: center;
   align-items: center;
   flex-wrap: wrap;
 }
@@ -862,6 +862,10 @@ tbody tr:last-child td {
   }
 
   .main-content {
+    margin-left: var(--sidebar-width);
+  }
+
+  .top-bar {
     margin-left: var(--sidebar-width);
   }
 
