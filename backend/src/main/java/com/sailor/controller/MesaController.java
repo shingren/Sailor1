@@ -2,7 +2,10 @@ package com.sailor.controller;
 
 import com.sailor.dto.JoinMesasDTO;
 import com.sailor.dto.UpdateMesaPositionDTO;
+import com.sailor.dto.UpdateMesaStatusDTO;
+import com.sailor.entity.Location;
 import com.sailor.entity.Mesa;
+import com.sailor.repository.LocationRepository;
 import com.sailor.repository.MesaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +20,9 @@ public class MesaController {
     @Autowired
     private MesaRepository mesaRepository;
 
+    @Autowired
+    private LocationRepository locationRepository;
+
     @GetMapping
     public List<Mesa> getAllMesas() {
         return mesaRepository.findAll();
@@ -24,7 +30,45 @@ public class MesaController {
 
     @PostMapping
     public Mesa createMesa(@RequestBody Mesa mesa) {
+        // If location is provided, fetch it from database
+        if (mesa.getLocation() != null && mesa.getLocation().getId() != null) {
+            Location location = locationRepository.findById(mesa.getLocation().getId()).orElse(null);
+            mesa.setLocation(location);
+            if (location != null) {
+                mesa.setZona(location.getName());
+            }
+        }
         return mesaRepository.save(mesa);
+    }
+
+    @PutMapping("/{id}/status")
+    public ResponseEntity<Mesa> updateMesaStatus(
+            @PathVariable Long id,
+            @RequestBody UpdateMesaStatusDTO dto) {
+        return mesaRepository.findById(id)
+                .map(mesa -> {
+                    mesa.setEstado(dto.getEstado());
+                    Mesa updated = mesaRepository.save(mesa);
+                    return ResponseEntity.ok(updated);
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PutMapping("/{id}/location")
+    public ResponseEntity<Mesa> updateMesaLocation(
+            @PathVariable Long id,
+            @RequestParam Long locationId) {
+        return mesaRepository.findById(id)
+                .map(mesa -> {
+                    Location location = locationRepository.findById(locationId).orElse(null);
+                    mesa.setLocation(location);
+                    if (location != null) {
+                        mesa.setZona(location.getName());
+                    }
+                    Mesa updated = mesaRepository.save(mesa);
+                    return ResponseEntity.ok(updated);
+                })
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @PutMapping("/{id}/position")

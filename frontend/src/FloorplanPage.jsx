@@ -8,10 +8,10 @@ function FloorplanPage() {
   const canvasRef = useRef(null)
 
   const [mesas, setMesas] = useState([])
-  const [pedidos, setPedidos] = useState([])
+  const [locations, setLocations] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [selectedZone, setSelectedZone] = useState('INSIDE')
+  const [selectedLocation, setSelectedLocation] = useState(null)
   const [selectedMesas, setSelectedMesas] = useState([])
   const [draggedMesa, setDraggedMesa] = useState(null)
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
@@ -36,15 +36,15 @@ function FloorplanPage() {
     if (!loading && mesas.length > 0) {
       drawCanvas()
     }
-  }, [mesas, pedidos, selectedZone, scale, panOffset, selectedMesas])
+  }, [mesas, selectedLocation, scale, panOffset, selectedMesas])
 
   const fetchData = async () => {
     setLoading(true)
     setError('')
     try {
-      const [mesasRes, pedidosRes] = await Promise.all([
+      const [mesasRes, locationsRes] = await Promise.all([
         fetch('/api/mesas', { headers: { 'Authorization': getAuthHeader() } }),
-        fetch('/api/pedidos', { headers: { 'Authorization': getAuthHeader() } })
+        fetch('/api/locations', { headers: { 'Authorization': getAuthHeader() } })
       ])
 
       if (mesasRes.ok) {
@@ -52,12 +52,10 @@ function FloorplanPage() {
         // Initialize positions for mesas that don't have them
         const initializedMesas = mesasData.map((mesa, index) => {
           if (mesa.positionX === null || mesa.positionY === null) {
-            const zone = mesa.zona || 'INSIDE'
             return {
               ...mesa,
               positionX: 100 + (index % 10) * 100,
-              positionY: 100 + Math.floor(index / 10) * 100,
-              zona: zone
+              positionY: 100 + Math.floor(index / 10) * 100
             }
           }
           return mesa
@@ -65,9 +63,13 @@ function FloorplanPage() {
         setMesas(initializedMesas)
       }
 
-      if (pedidosRes.ok) {
-        const pedidosData = await pedidosRes.json()
-        setPedidos(pedidosData)
+      if (locationsRes.ok) {
+        const locationsData = await locationsRes.json()
+        setLocations(locationsData)
+        // Set first location as default if available
+        if (locationsData.length > 0 && !selectedLocation) {
+          setSelectedLocation(locationsData[0].id)
+        }
       }
     } catch (err) {
       setError('Error loading data: ' + err.message)
@@ -77,27 +79,15 @@ function FloorplanPage() {
   }
 
   const getMesaStatus = (mesa) => {
-    const activePedidos = pedidos.filter(p =>
-      p.mesaId === mesa.id &&
-      (p.estado === 'PENDIENTE' || p.estado === 'EN_PREPARACION' || p.estado === 'LISTO')
-    )
-
-    if (activePedidos.length === 0) {
-      return 'FREE' // disponible
+    // Use mesa's estado directly
+    if (mesa.estado === 'disponible') {
+      return 'FREE'
+    } else if (mesa.estado === 'ocupada' || mesa.estado === 'OCUPADA') {
+      return 'OCCUPIED'
+    } else if (mesa.estado === 'reservada') {
+      return 'RESERVED'
     }
-
-    const hasPending = activePedidos.some(p => p.estado === 'PENDIENTE')
-    const hasReady = activePedidos.some(p => p.estado === 'LISTO')
-
-    if (hasReady) {
-      return 'WAITING_PAYMENT' // Ready to be served/paid
-    }
-
-    if (hasPending) {
-      return 'WAITING_ORDER' // Order placed but not ready
-    }
-
-    return 'OCCUPIED'
+    return 'FREE'
   }
 
   const getStatusColor = (status) => {
@@ -106,12 +96,8 @@ function FloorplanPage() {
         return '#10b981' // green
       case 'OCCUPIED':
         return '#ef4444' // red
-      case 'WAITING_ORDER':
+      case 'RESERVED':
         return '#f59e0b' // amber
-      case 'WAITING_PAYMENT':
-        return '#8b5cf6' // purple
-      case 'LONG_SITTING':
-        return '#dc2626' // dark red
       default:
         return '#6b7280' // gray
     }
@@ -145,11 +131,13 @@ function FloorplanPage() {
       ctx.stroke()
     }
 
-    // Filter mesas by selected zone
-    const zoneMesas = mesas.filter(m => (m.zona || 'INSIDE') === selectedZone)
+    // Filter mesas by selected location
+    const locationMesas = selectedLocation
+      ? mesas.filter(m => m.location?.id === selectedLocation)
+      : mesas.filter(m => !m.location) // Show mesas without location if no location selected
 
     // Draw tables
-    zoneMesas.forEach(mesa => {
+    locationMesas.forEach(mesa => {
       const status = getMesaStatus(mesa)
       const color = getStatusColor(status)
       const x = mesa.positionX || 100
@@ -200,8 +188,10 @@ function FloorplanPage() {
   }
 
   const findMesaAtPosition = (x, y) => {
-    const zoneMesas = mesas.filter(m => (m.zona || 'INSIDE') === selectedZone)
-    return zoneMesas.find(mesa => {
+    const locationMesas = selectedLocation
+      ? mesas.filter(m => m.location?.id === selectedLocation)
+      : mesas.filter(m => !m.location)
+    return locationMesas.find(mesa => {
       const mx = mesa.positionX || 100
       const my = mesa.positionY || 100
       const distance = Math.sqrt((x - mx) ** 2 + (y - my) ** 2)
@@ -267,8 +257,7 @@ function FloorplanPage() {
           },
           body: JSON.stringify({
             positionX: draggedMesa.positionX,
-            positionY: draggedMesa.positionY,
-            zona: selectedZone
+            positionY: draggedMesa.positionY
           })
         })
       } catch (err) {
@@ -336,23 +325,15 @@ function FloorplanPage() {
     navigate('/pedidos')
   }
 
-  const handleZoomPreset = (preset) => {
-    switch (preset) {
-      case 'BAR':
-        setSelectedZone('BAR')
-        setScale(1.2)
-        setPanOffset({ x: 0, y: 0 })
-        break
-      case 'TERRACE':
-        setSelectedZone('TERRACE')
-        setScale(1.2)
-        setPanOffset({ x: 0, y: 0 })
-        break
-      case 'RESET':
-        setScale(1)
-        setPanOffset({ x: 0, y: 0 })
-        break
-    }
+  const handleZoomToLocation = (locationId) => {
+    setSelectedLocation(locationId)
+    setScale(1.2)
+    setPanOffset({ x: 0, y: 0 })
+  }
+
+  const handleResetView = () => {
+    setScale(1)
+    setPanOffset({ x: 0, y: 0 })
   }
 
   if (!isAuthenticated) {
@@ -376,18 +357,21 @@ function FloorplanPage() {
       {/* Controls */}
       <div className="card" style={{ marginBottom: '20px' }}>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-          {/* Zone Selection */}
+          {/* Location Selection */}
           <div>
-            <label htmlFor="zone-select" style={{ marginRight: '10px' }}>Zone:</label>
+            <label htmlFor="location-select" style={{ marginRight: '10px' }}>Location:</label>
             <select
-              id="zone-select"
-              value={selectedZone}
-              onChange={(e) => setSelectedZone(e.target.value)}
+              id="location-select"
+              value={selectedLocation || ''}
+              onChange={(e) => setSelectedLocation(e.target.value ? parseInt(e.target.value) : null)}
               style={{ padding: '8px' }}
             >
-              <option value="INSIDE">Inside</option>
-              <option value="TERRACE">Terrace</option>
-              <option value="BAR">Bar</option>
+              <option value="">-- No Location --</option>
+              {locations.map(location => (
+                <option key={location.id} value={location.id}>
+                  {location.name}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -399,20 +383,25 @@ function FloorplanPage() {
             <button onClick={() => setScale(s => Math.max(s - 0.1, 0.5))} className="btn-secondary btn-small">
               Zoom Out
             </button>
-            <button onClick={() => handleZoomPreset('RESET')} className="btn-secondary btn-small">
+            <button onClick={handleResetView} className="btn-secondary btn-small">
               Reset View
             </button>
           </div>
 
-          {/* Quick Zoom Presets */}
-          <div style={{ display: 'flex', gap: '5px' }}>
-            <button onClick={() => handleZoomPreset('BAR')} className="btn-secondary btn-small">
-              Zoom to Bar
-            </button>
-            <button onClick={() => handleZoomPreset('TERRACE')} className="btn-secondary btn-small">
-              Zoom to Terrace
-            </button>
-          </div>
+          {/* Quick Zoom to Locations */}
+          {locations.length > 0 && (
+            <div style={{ display: 'flex', gap: '5px' }}>
+              {locations.map(location => (
+                <button
+                  key={location.id}
+                  onClick={() => handleZoomToLocation(location.id)}
+                  className="btn-secondary btn-small"
+                >
+                  Zoom to {location.name}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Table Actions */}
           <div style={{ display: 'flex', gap: '5px', marginLeft: 'auto' }}>
@@ -438,16 +427,12 @@ function FloorplanPage() {
             <span>Free</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '20px', height: '20px', borderRadius: '50%', backgroundColor: '#f59e0b' }}></div>
-            <span>Waiting Order</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div style={{ width: '20px', height: '20px', borderRadius: '50%', backgroundColor: '#ef4444' }}></div>
             <span>Occupied</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '20px', height: '20px', borderRadius: '50%', backgroundColor: '#8b5cf6' }}></div>
-            <span>Waiting Payment</span>
+            <div style={{ width: '20px', height: '20px', borderRadius: '50%', backgroundColor: '#f59e0b' }}></div>
+            <span>Reserved</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: '3px solid #3b82f6', backgroundColor: '#fff' }}></div>
@@ -455,7 +440,7 @@ function FloorplanPage() {
           </div>
         </div>
         <p style={{ marginTop: '10px', fontSize: '14px', color: '#6b7280' }}>
-          <strong>Tip:</strong> Click and drag to move tables. Shift+Click to select multiple tables. Click empty space and drag to pan.
+          <strong>Tip:</strong> Click and drag to move tables. Shift+Click to select multiple tables. Click empty space and drag to pan. Status is managed from the Mesas page.
         </p>
       </div>
 

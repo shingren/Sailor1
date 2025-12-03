@@ -4,13 +4,17 @@ import { useAuth } from './AuthContext'
 
 function MesasPage() {
   const [mesas, setMesas] = useState([])
+  const [locations, setLocations] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadingLocations, setLoadingLocations] = useState(true)
   const [error, setError] = useState(null)
   const [formData, setFormData] = useState({
     codigo: '',
     capacidad: '',
-    estado: 'disponible'
+    estado: 'disponible',
+    locationId: ''
   })
+  const [newLocationName, setNewLocationName] = useState('')
   const [createError, setCreateError] = useState(null)
   const [success, setSuccess] = useState(null)
   const { isAuthenticated, getAuthHeader } = useAuth()
@@ -21,6 +25,7 @@ function MesasPage() {
       return
     }
     fetchMesas()
+    fetchLocations()
   }, [isAuthenticated])
 
   const fetchMesas = async () => {
@@ -46,23 +51,97 @@ function MesasPage() {
     }
   }
 
+  const fetchLocations = async () => {
+    setLoadingLocations(true)
+    try {
+      const response = await fetch('/api/locations', {
+        headers: {
+          'Authorization': getAuthHeader()
+        }
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setLocations(data)
+      }
+    } catch (err) {
+      console.error('Error fetching locations:', err)
+    } finally {
+      setLoadingLocations(false)
+    }
+  }
+
+  const handleCreateLocation = async (e) => {
+    e.preventDefault()
+    if (!newLocationName.trim()) return
+
+    try {
+      const response = await fetch('/api/locations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': getAuthHeader()
+        },
+        body: JSON.stringify({ name: newLocationName })
+      })
+
+      if (response.ok) {
+        setNewLocationName('')
+        fetchLocations()
+        setSuccess(`Location "${newLocationName}" created successfully!`)
+        setTimeout(() => setSuccess(null), 3000)
+      } else {
+        setCreateError('Failed to create location - it may already exist')
+      }
+    } catch (err) {
+      setCreateError('Error creating location: ' + err.message)
+    }
+  }
+
+  const handleDeleteLocation = async (locationId) => {
+    if (!confirm('Are you sure you want to delete this location?')) return
+
+    try {
+      const response = await fetch(`/api/locations/${locationId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': getAuthHeader()
+        }
+      })
+
+      if (response.ok) {
+        fetchLocations()
+        setSuccess('Location deleted successfully!')
+        setTimeout(() => setSuccess(null), 3000)
+      }
+    } catch (err) {
+      setError('Error deleting location: ' + err.message)
+    }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setCreateError(null)
     setSuccess(null)
 
     try {
+      const mesaData = {
+        codigo: formData.codigo,
+        capacidad: parseInt(formData.capacidad),
+        estado: formData.estado
+      }
+
+      // Add location if selected
+      if (formData.locationId) {
+        mesaData.location = { id: parseInt(formData.locationId) }
+      }
+
       const response = await fetch('/api/mesas', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': getAuthHeader()
         },
-        body: JSON.stringify({
-          codigo: formData.codigo,
-          capacidad: parseInt(formData.capacidad),
-          estado: formData.estado
-        })
+        body: JSON.stringify(mesaData)
       })
 
       if (response.status === 401) {
@@ -72,10 +151,46 @@ function MesasPage() {
       if (!response.ok) throw new Error('Error creating mesa')
 
       setSuccess(`Mesa "${formData.codigo}" created successfully!`)
-      setFormData({ codigo: '', capacidad: '', estado: 'disponible' })
+      setFormData({ codigo: '', capacidad: '', estado: 'disponible', locationId: '' })
       fetchMesas()
     } catch (err) {
       setCreateError(err.message)
+    }
+  }
+
+  const handleStatusChange = async (mesaId, newStatus) => {
+    try {
+      const response = await fetch(`/api/mesas/${mesaId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': getAuthHeader()
+        },
+        body: JSON.stringify({ estado: newStatus })
+      })
+
+      if (response.ok) {
+        fetchMesas()
+      }
+    } catch (err) {
+      setError('Error updating status: ' + err.message)
+    }
+  }
+
+  const handleLocationChange = async (mesaId, locationId) => {
+    try {
+      const response = await fetch(`/api/mesas/${mesaId}/location?locationId=${locationId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': getAuthHeader()
+        }
+      })
+
+      if (response.ok) {
+        fetchMesas()
+      }
+    } catch (err) {
+      setError('Error updating location: ' + err.message)
     }
   }
 
@@ -131,13 +246,62 @@ function MesasPage() {
         </div>
       </div>
 
+      {success && <div className="alert alert-success">{success}</div>}
+      {createError && <div className="alert alert-error">{createError}</div>}
+
+      {/* Location Management */}
+      <div className="card">
+        <div className="card-header">
+          <h2 className="card-title">Manage Locations</h2>
+        </div>
+        <form onSubmit={handleCreateLocation} style={{ marginBottom: '20px' }}>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
+            <div style={{ flex: 1 }}>
+              <label htmlFor="newLocation">Create New Location:</label>
+              <input
+                id="newLocation"
+                type="text"
+                value={newLocationName}
+                onChange={(e) => setNewLocationName(e.target.value)}
+                placeholder="e.g., Inside, Terrace, Bar"
+              />
+            </div>
+            <button type="submit" className="btn-primary">Create Location</button>
+          </div>
+        </form>
+
+        {loadingLocations ? (
+          <div className="loading">Loading locations...</div>
+        ) : (
+          <div>
+            <strong>Existing Locations:</strong>
+            {locations.length === 0 ? (
+              <p className="text-muted">No locations created yet</p>
+            ) : (
+              <div style={{ display: 'flex', gap: '10px', marginTop: '10px', flexWrap: 'wrap' }}>
+                {locations.map(location => (
+                  <div key={location.id} style={{ padding: '8px 12px', backgroundColor: '#f3f4f6', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span><strong>{location.name}</strong></span>
+                    <button
+                      onClick={() => handleDeleteLocation(location.id)}
+                      className="btn-danger btn-small"
+                      style={{ padding: '2px 8px', fontSize: '12px' }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Create Mesa */}
       <div className="card">
         <div className="card-header">
           <h2 className="card-title">Crear Nueva Mesa</h2>
         </div>
-
-        {success && <div className="alert alert-success">{success}</div>}
-        {createError && <div className="alert alert-error">{createError}</div>}
 
         <form onSubmit={handleSubmit}>
           <div className="form-row">
@@ -177,9 +341,25 @@ function MesasPage() {
                 onChange={handleChange}
                 required
               >
-                <option value="disponible">Disponible</option>
-                <option value="ocupada">Ocupada</option>
-                <option value="reservada">Reservada</option>
+                <option value="disponible">Free</option>
+                <option value="ocupada">Occupied</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="locationId">Location</label>
+              <select
+                id="locationId"
+                name="locationId"
+                value={formData.locationId}
+                onChange={handleChange}
+              >
+                <option value="">-- Select Location --</option>
+                {locations.map(location => (
+                  <option key={location.id} value={location.id}>
+                    {location.name}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -188,6 +368,7 @@ function MesasPage() {
         </form>
       </div>
 
+      {/* Mesas List */}
       <div className="card">
         <div className="card-header">
           <h2 className="card-title">Listado de Mesas</h2>
@@ -202,7 +383,8 @@ function MesasPage() {
                 <th>ID</th>
                 <th>Código</th>
                 <th>Capacidad</th>
-                <th>Estado</th>
+                <th>Status</th>
+                <th>Location</th>
               </tr>
             </thead>
             <tbody>
@@ -212,13 +394,33 @@ function MesasPage() {
                   <td><strong>{mesa.codigo}</strong></td>
                   <td>{mesa.capacidad} personas</td>
                   <td>
-                    <span className={`badge ${
-                      mesa.estado === 'disponible' ? 'badge-green' :
-                      mesa.estado === 'ocupada' ? 'badge-red' :
-                      'badge-yellow'
-                    }`}>
-                      {mesa.estado.toUpperCase()}
-                    </span>
+                    <select
+                      value={mesa.estado}
+                      onChange={(e) => handleStatusChange(mesa.id, e.target.value)}
+                      className={`badge ${
+                        mesa.estado === 'disponible' ? 'badge-green' :
+                        mesa.estado === 'ocupada' ? 'badge-red' :
+                        'badge-yellow'
+                      }`}
+                      style={{ border: 'none', fontWeight: 'bold', cursor: 'pointer' }}
+                    >
+                      <option value="disponible">FREE</option>
+                      <option value="ocupada">OCCUPIED</option>
+                    </select>
+                  </td>
+                  <td>
+                    <select
+                      value={mesa.location?.id || ''}
+                      onChange={(e) => handleLocationChange(mesa.id, e.target.value)}
+                      style={{ padding: '4px 8px' }}
+                    >
+                      <option value="">-- No Location --</option>
+                      {locations.map(location => (
+                        <option key={location.id} value={location.id}>
+                          {location.name}
+                        </option>
+                      ))}
+                    </select>
                   </td>
                 </tr>
               ))}

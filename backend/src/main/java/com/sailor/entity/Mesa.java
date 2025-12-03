@@ -22,6 +22,10 @@ public class Mesa {
     @Column(name = "group_id")
     private Long groupId; // For joining tables
 
+    @ManyToOne
+    @JoinColumn(name = "location_id")
+    private Location location;
+
     public Mesa() {
     }
 
@@ -94,5 +98,13 @@ public class Mesa {
 
     public void setGroupId(Long groupId) {
         this.groupId = groupId;
+    }
+
+    public Location getLocation() {
+        return location;
+    }
+
+    public void setLocation(Location location) {
+        this.location = location;
     }
 }

@@ -111,6 +111,9 @@ public class SecurityConfig {
                 // DASHBOARD - All authenticated users
                 .requestMatchers("/dashboard/**").authenticated()
 
+                // LOCATIONS - ADMIN, MESERO
+                .requestMatchers("/locations/**").hasAnyRole("ADMIN", "MESERO")
+
                 // All other endpoints require ADMIN
                 .anyRequest().hasRole("ADMIN")
             )
