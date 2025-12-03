@@ -17,7 +17,7 @@ function PedidosPage() {
   const [formData, setFormData] = useState({
     mesaId: '',
     observaciones: '',
-    items: [{ productoId: '', cantidad: 1 }]
+    items: [{ productoId: '', cantidad: '' }]
   })
 
   useEffect(() => {
@@ -103,7 +103,7 @@ function PedidosPage() {
 
   const handleItemChange = (index, field, value) => {
     const newItems = [...formData.items]
-    newItems[index][field] = field === 'cantidad' ? parseInt(value) || 1 : parseInt(value) || ''
+    newItems[index][field] = field === 'cantidad' ? (value === '' ? '' : parseInt(value) || '') : parseInt(value) || ''
     setFormData(prev => ({
       ...prev,
       items: newItems
@@ -113,7 +113,7 @@ function PedidosPage() {
   const addItem = () => {
     setFormData(prev => ({
       ...prev,
-      items: [...prev.items, { productoId: '', cantidad: 1 }]
+      items: [...prev.items, { productoId: '', cantidad: '' }]
     }))
   }
 
@@ -172,7 +172,7 @@ function PedidosPage() {
       setFormData({
         mesaId: '',
         observaciones: '',
-        items: [{ productoId: '', cantidad: 1 }]
+        items: [{ productoId: '', cantidad: '' }]
       })
 
       fetchPedidos()
@@ -342,6 +342,7 @@ function PedidosPage() {
                     type="number"
                     value={item.cantidad}
                     onChange={(e) => handleItemChange(index, 'cantidad', e.target.value)}
+                    placeholder="ej: 1"
                     min="1"
                     required
                     style={{ width: '80px' }}
