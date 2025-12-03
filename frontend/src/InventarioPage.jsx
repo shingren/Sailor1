@@ -49,7 +49,7 @@ function InventarioPage() {
       ])
 
       if (!insumosRes.ok || !movimientosRes.ok || !recetasRes.ok || !productosRes.ok) {
-        setError('Failed to fetch data')
+        setError('Error al cargar datos')
         setLoading(false)
         return
       }
@@ -66,7 +66,7 @@ function InventarioPage() {
       setRecetas(recetasData)
       setProductos(productosData)
     } catch (err) {
-      setError('Error fetching data: ' + err.message)
+      setError('Error al cargar datos: ' + err.message)
     } finally {
       setLoading(false)
     }
@@ -87,14 +87,14 @@ function InventarioPage() {
       })
 
       if (!response.ok) {
-        setError('Failed to create insumo')
+        setError('Error al crear insumo')
         return
       }
 
       setNewInsumo({ nombre: '', unidad: '', stockActual: 0, stockMinimo: 0 })
       fetchData()
     } catch (err) {
-      setError('Error creating insumo: ' + err.message)
+      setError('Error al crear insumo: ' + err.message)
     }
   }
 
@@ -103,7 +103,7 @@ function InventarioPage() {
     setError('')
 
     if (!newMovimiento.insumoId) {
-      setError('Please select an insumo')
+      setError('Por favor selecciona un insumo')
       return
     }
 
@@ -123,14 +123,14 @@ function InventarioPage() {
       })
 
       if (!response.ok) {
-        setError('Failed to create movimiento')
+        setError('Error al crear movimiento')
         return
       }
 
       setNewMovimiento({ insumoId: '', cantidad: 0, tipo: 'COMPRA', descripcion: '' })
       fetchData()
     } catch (err) {
-      setError('Error creating movimiento: ' + err.message)
+      setError('Error al crear movimiento: ' + err.message)
     }
   }
 
@@ -139,7 +139,7 @@ function InventarioPage() {
     setError('')
 
     if (!newReceta.productoId) {
-      setError('Please select a producto')
+      setError('Por favor selecciona un producto')
       return
     }
 
@@ -161,14 +161,14 @@ function InventarioPage() {
 
       if (!response.ok) {
         const errorText = await response.text()
-        setError('Failed to create receta: ' + errorText)
+        setError('Error al crear receta: ' + errorText)
         return
       }
 
       setNewReceta({ productoId: '', items: [{ insumoId: '', cantidadNecesaria: 0 }] })
       fetchData()
     } catch (err) {
-      setError('Error creating receta: ' + err.message)
+      setError('Error al crear receta: ' + err.message)
     }
   }
 
@@ -197,8 +197,8 @@ function InventarioPage() {
       <div className="centered-container">
         <div className="card">
           <h2>Inventario</h2>
-          <p>You must log in to view this page</p>
-          <Link to="/login" className="btn-primary">Go to Login</Link>
+          <p>Debes iniciar sesión para ver esta página</p>
+          <Link to="/login" className="btn-primary">Ir a Iniciar Sesión</Link>
         </div>
       </div>
     )
@@ -206,16 +206,16 @@ function InventarioPage() {
 
   return (
     <div>
-      <h1>Inventario - Inventory Management</h1>
+      <h1>Gestión de Inventario</h1>
 
       {error && <div className="alert alert-error">{error}</div>}
 
       <div className="card">
         <div className="card-header">
-          <h2>SECTION A - Insumos (Ingredients)</h2>
+          <h2>Insumos</h2>
         </div>
 
-        <h3>Create New Insumo</h3>
+        <h3>Crear Nuevo Insumo</h3>
         <form onSubmit={handleCreateInsumo}>
           <label htmlFor="insumo-nombre">
             Nombre:
@@ -260,12 +260,12 @@ function InventarioPage() {
             onChange={(e) => setNewInsumo({ ...newInsumo, stockMinimo: parseFloat(e.target.value) })}
             required
           />
-          <button type="submit" className="btn-primary">Create Insumo</button>
+          <button type="submit" className="btn-primary">Crear Insumo</button>
         </form>
 
-        <h3>Existing Insumos</h3>
+        <h3>Insumos Existentes</h3>
         {loading ? (
-          <div className="loading">Loading</div>
+          <div className="loading">Cargando</div>
         ) : (
           <table>
             <thead>
@@ -280,7 +280,7 @@ function InventarioPage() {
             <tbody>
               {insumos.length === 0 ? (
                 <tr>
-                  <td colSpan="5">No insumos found</td>
+                  <td colSpan="5">No se encontraron insumos</td>
                 </tr>
               ) : (
                 insumos.map(insumo => (
@@ -303,10 +303,10 @@ function InventarioPage() {
 
       <div className="card">
         <div className="card-header">
-          <h2>SECTION B - Movimientos de Insumo (Stock Movements)</h2>
+          <h2>Movimientos de Inventario</h2>
         </div>
 
-        <h3>Register Movement</h3>
+        <h3>Registrar Movimiento</h3>
         <form onSubmit={handleCreateMovimiento}>
           <label htmlFor="movimiento-insumo">
             Insumo:
@@ -317,7 +317,7 @@ function InventarioPage() {
             onChange={(e) => setNewMovimiento({ ...newMovimiento, insumoId: e.target.value })}
             required
           >
-            <option value="">-- Select Insumo --</option>
+            <option value="">-- Seleccionar Insumo --</option>
             {insumos.map(insumo => (
               <option key={insumo.id} value={insumo.id}>
                 {insumo.nombre} ({insumo.unidad})
@@ -354,12 +354,12 @@ function InventarioPage() {
             type="text"
             value={newMovimiento.descripcion}
             onChange={(e) => setNewMovimiento({ ...newMovimiento, descripcion: e.target.value })}
-            placeholder="Optional description"
+            placeholder="Descripción opcional"
           />
-          <button type="submit" className="btn-primary">Register Movement</button>
+          <button type="submit" className="btn-primary">Registrar Movimiento</button>
         </form>
 
-        <h3>Recent Movimientos</h3>
+        <h3>Movimientos Recientes</h3>
         <table>
           <thead>
             <tr>
@@ -374,7 +374,7 @@ function InventarioPage() {
           <tbody>
             {movimientos.length === 0 ? (
               <tr>
-                <td colSpan="6">No movimientos found</td>
+                <td colSpan="6">No se encontraron movimientos</td>
               </tr>
             ) : (
               movimientos.slice().reverse().slice(0, 20).map(mov => (
@@ -402,10 +402,10 @@ function InventarioPage() {
 
       <div className="card">
         <div className="card-header">
-          <h2>SECTION C - Recetas (Recipes)</h2>
+          <h2>Recetas</h2>
         </div>
 
-        <h3>Create New Receta</h3>
+        <h3>Crear Nueva Receta</h3>
         <form onSubmit={handleCreateReceta}>
           <label htmlFor="receta-producto">
             Producto:
@@ -416,7 +416,7 @@ function InventarioPage() {
             onChange={(e) => setNewReceta({ ...newReceta, productoId: e.target.value })}
             required
           >
-            <option value="">-- Select Producto --</option>
+            <option value="">-- Seleccionar Producto --</option>
             {productos.map(producto => (
               <option key={producto.id} value={producto.id}>
                 {producto.nombre}
@@ -424,7 +424,7 @@ function InventarioPage() {
             ))}
           </select>
 
-          <h4>Recipe Items:</h4>
+          <h4>Ingredientes de la Receta:</h4>
           {newReceta.items.map((item, index) => (
             <div key={index} style={{ marginBottom: '10px', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}>
               <label htmlFor={`receta-insumo-${index}`}>
@@ -436,7 +436,7 @@ function InventarioPage() {
                 onChange={(e) => updateRecetaItem(index, 'insumoId', e.target.value)}
                 required
               >
-                <option value="">-- Select Insumo --</option>
+                <option value="">-- Seleccionar Insumo --</option>
                 {insumos.map(insumo => (
                   <option key={insumo.id} value={insumo.id}>
                     {insumo.nombre} ({insumo.unidad})
@@ -456,29 +456,29 @@ function InventarioPage() {
                 style={{ width: '100px' }}
               />
               {newReceta.items.length > 1 && (
-                <button type="button" onClick={() => removeRecetaItem(index)} className="btn-danger btn-small" style={{ marginLeft: '10px' }}>Remove</button>
+                <button type="button" onClick={() => removeRecetaItem(index)} className="btn-danger btn-small" style={{ marginLeft: '10px' }}>Eliminar</button>
               )}
             </div>
           ))}
 
-          <button type="button" onClick={addRecetaItem} className="btn-secondary">Add Item</button>
+          <button type="button" onClick={addRecetaItem} className="btn-secondary">Agregar Ingrediente</button>
           {' '}
-          <button type="submit" className="btn-primary">Create Receta</button>
+          <button type="submit" className="btn-primary">Crear Receta</button>
         </form>
 
-        <h3>Existing Recetas</h3>
+        <h3>Recetas Existentes</h3>
         <table>
           <thead>
             <tr>
               <th>ID</th>
               <th>Producto</th>
-              <th>Ingredients</th>
+              <th>Ingredientes</th>
             </tr>
           </thead>
           <tbody>
             {recetas.length === 0 ? (
               <tr>
-                <td colSpan="3">No recetas found</td>
+                <td colSpan="3">No se encontraron recetas</td>
               </tr>
             ) : (
               recetas.map(receta => (

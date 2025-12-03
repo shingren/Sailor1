@@ -27,13 +27,13 @@ function FacturasPage() {
       })
 
       if (response.status === 401) {
-        setError('Not authorized - please log in again')
+        setError('No autorizado - por favor inicia sesión nuevamente')
         setLoading(false)
         return
       }
 
       if (!response.ok) {
-        setError('Failed to fetch facturas')
+        setError('Error al cargar facturas')
         setLoading(false)
         return
       }
@@ -41,7 +41,7 @@ function FacturasPage() {
       const data = await response.json()
       setFacturas(data)
     } catch (err) {
-      setError('Error fetching facturas: ' + err.message)
+      setError('Error al cargar facturas: ' + err.message)
     } finally {
       setLoading(false)
     }
@@ -52,7 +52,7 @@ function FacturasPage() {
     setError('')
 
     if (!genFacturaId) {
-      setError('Please enter a pedido ID')
+      setError('Por favor ingresa un ID de pedido')
       return
     }
 
@@ -67,20 +67,20 @@ function FacturasPage() {
       })
 
       if (response.status === 401) {
-        setError('Not authorized - please log in again')
+        setError('No autorizado - por favor inicia sesión nuevamente')
         return
       }
 
       if (!response.ok) {
         const errorText = await response.text()
-        setError('Failed to create factura: ' + errorText)
+        setError('Error al crear factura: ' + errorText)
         return
       }
 
       setGenFacturaId('')
       fetchFacturas()
     } catch (err) {
-      setError('Error creating factura: ' + err.message)
+      setError('Error al crear factura: ' + err.message)
     }
   }
 
@@ -99,12 +99,12 @@ function FacturasPage() {
     const form = pagoForms[facturaId] || {}
 
     if (!form.monto || form.monto <= 0) {
-      setError('Monto must be greater than 0')
+      setError('El monto debe ser mayor a 0')
       return
     }
 
     if (!form.metodo) {
-      setError('Please select a payment method')
+      setError('Por favor selecciona un método de pago')
       return
     }
 
@@ -123,20 +123,20 @@ function FacturasPage() {
       })
 
       if (response.status === 401) {
-        setError('Not authorized - please log in again')
+        setError('No autorizado - por favor inicia sesión nuevamente')
         return
       }
 
       if (!response.ok) {
         const errorText = await response.text()
-        setError('Failed to register payment: ' + errorText)
+        setError('Error al registrar pago: ' + errorText)
         return
       }
 
       setPagoForms(prev => ({ ...prev, [facturaId]: {} }))
       fetchFacturas()
     } catch (err) {
-      setError('Error registering payment: ' + err.message)
+      setError('Error al registrar pago: ' + err.message)
     }
   }
 
@@ -145,8 +145,8 @@ function FacturasPage() {
       <div className="centered-container">
         <div className="card">
           <h2>Facturas</h2>
-          <p>You must log in to view this page</p>
-          <Link to="/login" className="btn-primary">Go to Login</Link>
+          <p>Debes iniciar sesión para ver esta página</p>
+          <Link to="/login" className="btn-primary">Ir a Iniciar Sesión</Link>
         </div>
       </div>
     )
@@ -174,7 +174,7 @@ function FacturasPage() {
       {/* Summary Stats Section */}
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-label">Total Facturas</div>
+          <div className="stat-label">Total de Facturas</div>
           <div className="stat-value stat-value-primary">{totalFacturas}</div>
         </div>
         <div className="stat-card">
@@ -217,24 +217,24 @@ function FacturasPage() {
           <h2 className="card-title">Facturas Recientes</h2>
         </div>
         {loading ? (
-          <div className="loading">Loading</div>
+          <div className="loading">Cargando</div>
         ) : (
           <table>
             <thead>
               <tr>
-                <th>Factura ID</th>
-                <th>Pedido ID</th>
+                <th>ID Factura</th>
+                <th>ID Pedido</th>
                 <th>Fecha</th>
                 <th>Total</th>
                 <th>Estado</th>
                 <th>Pagos</th>
-                <th>Actions</th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
               {facturas.length === 0 ? (
                 <tr>
-                  <td colSpan="7">No facturas found</td>
+                  <td colSpan="7">No se encontraron facturas</td>
                 </tr>
               ) : (
                 facturas.map(factura => {
@@ -254,7 +254,7 @@ function FacturasPage() {
                           {factura.estado}
                         </span>
                       </td>
-                      <td>{factura.pagos.length} items</td>
+                      <td>{factura.pagos.length} pagos</td>
                       <td>
                         {factura.estado === 'PENDIENTE' ? (
                           <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
@@ -277,7 +277,7 @@ function FacturasPage() {
                               value={pagoForm.metodo || ''}
                               onChange={(e) => handlePagoFormChange(factura.id, 'metodo', e.target.value)}
                             >
-                              <option value="">-- Select --</option>
+                              <option value="">-- Seleccionar --</option>
                               <option value="EFECTIVO">EFECTIVO</option>
                               <option value="TARJETA">TARJETA</option>
                             </select>

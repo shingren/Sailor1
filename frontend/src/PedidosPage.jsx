@@ -37,13 +37,13 @@ function PedidosPage() {
       })
 
       if (response.status === 401) {
-        setError('Not authorized - please log in again')
+        setError('No autorizado - por favor inicia sesión nuevamente')
         setLoading(false)
         return
       }
 
       if (!response.ok) {
-        setError('Failed to fetch pedidos')
+        setError('Error al cargar pedidos')
         setLoading(false)
         return
       }
@@ -51,7 +51,7 @@ function PedidosPage() {
       const data = await response.json()
       setPedidos(data)
     } catch (err) {
-      setError('Error fetching pedidos: ' + err.message)
+      setError('Error al cargar pedidos: ' + err.message)
     } finally {
       setLoading(false)
     }
@@ -69,7 +69,7 @@ function PedidosPage() {
         setMesas(data)
       }
     } catch (err) {
-      console.error('Error fetching mesas:', err)
+      console.error('Error al cargar mesas:', err)
     } finally {
       setLoadingMesas(false)
     }
@@ -87,7 +87,7 @@ function PedidosPage() {
         setProductos(data)
       }
     } catch (err) {
-      console.error('Error fetching productos:', err)
+      console.error('Error al cargar productos:', err)
     } finally {
       setLoadingProductos(false)
     }
@@ -132,13 +132,13 @@ function PedidosPage() {
     setError('')
 
     if (!formData.mesaId) {
-      setError('Please select a mesa')
+      setError('Por favor selecciona una mesa')
       return
     }
 
     const hasInvalidItems = formData.items.some(item => !item.productoId || item.cantidad < 1)
     if (hasInvalidItems) {
-      setError('All items must have a product and quantity >= 1')
+      setError('Todos los ítems deben tener un producto y cantidad >= 1')
       return
     }
 
@@ -160,12 +160,12 @@ function PedidosPage() {
       })
 
       if (response.status === 401) {
-        setError('Not authorized - please log in again')
+        setError('No autorizado - por favor inicia sesión nuevamente')
         return
       }
 
       if (!response.ok) {
-        setError('Failed to create pedido')
+        setError('Error al crear pedido')
         return
       }
 
@@ -177,7 +177,7 @@ function PedidosPage() {
 
       fetchPedidos()
     } catch (err) {
-      setError('Error creating pedido: ' + err.message)
+      setError('Error al crear pedido: ' + err.message)
     }
   }
 
@@ -186,8 +186,8 @@ function PedidosPage() {
       <div className="centered-container">
         <div className="card">
           <h2>Pedidos</h2>
-          <p>You must log in to view this page</p>
-          <Link to="/login" className="btn-primary">Go to Login</Link>
+          <p>Debes iniciar sesión para ver esta página</p>
+          <Link to="/login" className="btn-primary">Ir a Iniciar Sesión</Link>
         </div>
       </div>
     )
@@ -206,7 +206,7 @@ function PedidosPage() {
       {/* Summary Stats Section */}
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-label">Total Pedidos</div>
+          <div className="stat-label">Total de Pedidos</div>
           <div className="stat-value stat-value-primary">{totalPedidos}</div>
         </div>
         <div className="stat-card">
@@ -230,7 +230,7 @@ function PedidosPage() {
           <h2 className="card-title">Pedidos Activos</h2>
         </div>
         {loading ? (
-          <div className="loading">Loading</div>
+          <div className="loading">Cargando</div>
         ) : (
           <table>
             <thead>
@@ -239,13 +239,13 @@ function PedidosPage() {
                 <th>Mesa</th>
                 <th>Estado</th>
                 <th>Fecha</th>
-                <th>Items</th>
+                <th>Ítems</th>
               </tr>
             </thead>
             <tbody>
               {pedidos.length === 0 ? (
                 <tr>
-                  <td colSpan="5">No pedidos found</td>
+                  <td colSpan="5">No se encontraron pedidos</td>
                 </tr>
               ) : (
                 pedidos.map(pedido => (
@@ -263,7 +263,7 @@ function PedidosPage() {
                       </span>
                     </td>
                     <td>{new Date(pedido.fechaHora).toLocaleString()}</td>
-                    <td>{pedido.items.length} items</td>
+                    <td>{pedido.items.length} ítems</td>
                   </tr>
                 ))
               )}
@@ -277,7 +277,7 @@ function PedidosPage() {
           <h2 className="card-title">Crear Nuevo Pedido</h2>
         </div>
         {loadingMesas || loadingProductos ? (
-          <div className="loading">Loading</div>
+          <div className="loading">Cargando</div>
         ) : (
           <form onSubmit={handleSubmit}>
             <div>
@@ -291,7 +291,7 @@ function PedidosPage() {
                 onChange={handleInputChange}
                 required
               >
-                <option value="">-- Select Mesa --</option>
+                <option value="">-- Seleccionar Mesa --</option>
                 {mesas.map(mesa => (
                   <option key={mesa.id} value={mesa.id}>
                     {mesa.codigo} (Capacidad: {mesa.capacidad})
@@ -314,7 +314,7 @@ function PedidosPage() {
             </div>
 
             <div style={{ marginTop: '10px' }}>
-              <strong>Items:</strong>
+              <strong>Ítems:</strong>
               {formData.items.map((item, index) => (
                 <div key={index} style={{ marginTop: '10px', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}>
                   <label htmlFor={`producto-${index}`}>
@@ -326,7 +326,7 @@ function PedidosPage() {
                     onChange={(e) => handleItemChange(index, 'productoId', e.target.value)}
                     required
                   >
-                    <option value="">-- Select Producto --</option>
+                    <option value="">-- Seleccionar Producto --</option>
                     {productos.filter(p => p.activo).map(producto => (
                       <option key={producto.id} value={producto.id}>
                         {producto.nombre} (${producto.precio.toFixed(2)})
@@ -349,15 +349,15 @@ function PedidosPage() {
                   />
 
                   {formData.items.length > 1 && (
-                    <button type="button" onClick={() => removeItem(index)} className="btn-danger btn-small" style={{ marginLeft: '10px' }}>Remove</button>
+                    <button type="button" onClick={() => removeItem(index)} className="btn-danger btn-small" style={{ marginLeft: '10px' }}>Eliminar</button>
                   )}
                 </div>
               ))}
-              <button type="button" onClick={addItem} className="btn-secondary" style={{ marginTop: '10px' }}>Add Item</button>
+              <button type="button" onClick={addItem} className="btn-secondary" style={{ marginTop: '10px' }}>Agregar Ítem</button>
             </div>
 
             <div style={{ marginTop: '15px' }}>
-              <button type="submit" className="btn-primary">Create Pedido</button>
+              <button type="submit" className="btn-primary">Crear Pedido</button>
             </div>
           </form>
         )}

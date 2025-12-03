@@ -35,7 +35,7 @@ function ReportesPage() {
       ])
 
       if (!ventasDiaRes.ok || !ventasProductoRes.ok || !pedidosEstadoRes.ok || !consumoInsumosRes.ok || !reservasDiaRes.ok) {
-        throw new Error('Failed to fetch reports')
+        throw new Error('Error al cargar reportes')
       }
 
       const ventasDiaData = await ventasDiaRes.json()
@@ -50,7 +50,7 @@ function ReportesPage() {
       setConsumoInsumos(consumoInsumosData)
       setReservasDia(reservasDiaData)
     } catch (err) {
-      setError('Error loading reports: ' + err.message)
+      setError('Error al cargar reportes: ' + err.message)
     } finally {
       setLoading(false)
     }
@@ -60,7 +60,7 @@ function ReportesPage() {
     return (
       <div>
         <h1>Reportes y Análisis</h1>
-        <div className="loading">Loading</div>
+        <div className="loading">Cargando</div>
       </div>
     )
   }
@@ -80,28 +80,27 @@ function ReportesPage() {
 
       <div className="card">
         <div className="card-header">
-          <h2>A. Ventas del Día</h2>
+          <h2>Ventas del Día</h2>
         </div>
         {ventasDia ? (
           <div>
             <p><strong>Fecha:</strong> {ventasDia.fecha}</p>
             <p><strong>Total Ventas:</strong> ${ventasDia.totalVentas.toFixed(2)}</p>
-            <p className="text-muted">Total sales for today: ${ventasDia.totalVentas.toFixed(2)}</p>
           </div>
         ) : (
-          <p>No sales data available</p>
+          <p>No hay datos de ventas disponibles</p>
         )}
       </div>
 
       <div className="card">
         <div className="card-header">
-          <h2>B. Ventas por Producto</h2>
+          <h2>Ventas por Producto</h2>
         </div>
         {ventasProducto.length === 0 ? (
-          <p>No sales data available</p>
+          <p>No hay datos de ventas disponibles</p>
         ) : (
           <div>
-            <p className="text-muted">Top selling products: {ventasProducto.length} products sold</p>
+            <p className="text-muted">Productos vendidos: {ventasProducto.length}</p>
             <table>
               <thead>
                 <tr>
@@ -115,7 +114,7 @@ function ReportesPage() {
                   <tr key={vp.productoId}>
                     <td>{vp.productoId}</td>
                     <td>{vp.productoNombre}</td>
-                    <td><strong>{vp.cantidadVendida}</strong> items</td>
+                    <td><strong>{vp.cantidadVendida}</strong> unidades</td>
                   </tr>
                 ))}
               </tbody>
@@ -126,13 +125,13 @@ function ReportesPage() {
 
       <div className="card">
         <div className="card-header">
-          <h2>C. Pedidos por Estado</h2>
+          <h2>Pedidos por Estado</h2>
         </div>
         {pedidosEstado.length === 0 ? (
-          <p>No pedidos data available</p>
+          <p>No hay datos de pedidos disponibles</p>
         ) : (
           <div>
-            <p className="text-muted">Order status breakdown: {pedidosEstado.reduce((sum, pe) => sum + pe.cantidad, 0)} total orders</p>
+            <p className="text-muted">Total de pedidos: {pedidosEstado.reduce((sum, pe) => sum + pe.cantidad, 0)}</p>
             <table>
               <thead>
                 <tr>
@@ -153,7 +152,7 @@ function ReportesPage() {
                         {pe.estado}
                       </span>
                     </td>
-                    <td><strong>{pe.cantidad}</strong> orders</td>
+                    <td><strong>{pe.cantidad}</strong> pedidos</td>
                   </tr>
                 ))}
               </tbody>
@@ -164,13 +163,13 @@ function ReportesPage() {
 
       <div className="card">
         <div className="card-header">
-          <h2>D. Consumo de Insumos (Hoy)</h2>
+          <h2>Consumo de Insumos (Hoy)</h2>
         </div>
         {consumoInsumos.length === 0 ? (
-          <p>No consumption data for today</p>
+          <p>No hay datos de consumo para hoy</p>
         ) : (
           <div>
-            <p className="text-muted">Ingredients used today: {consumoInsumos.length} different ingredients</p>
+            <p className="text-muted">Insumos utilizados hoy: {consumoInsumos.length}</p>
             <table>
               <thead>
                 <tr>
@@ -197,13 +196,13 @@ function ReportesPage() {
 
       <div className="card">
         <div className="card-header">
-          <h2>E. Reservas del Día</h2>
+          <h2>Reservas del Día</h2>
         </div>
         {reservasDia.length === 0 ? (
-          <p>No reservations for today</p>
+          <p>No hay reservas para hoy</p>
         ) : (
           <div>
-            <p className="text-muted">Today's reservations: {reservasDia.length} bookings</p>
+            <p className="text-muted">Reservas de hoy: {reservasDia.length}</p>
             <table>
               <thead>
                 <tr>

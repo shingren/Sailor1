@@ -35,19 +35,19 @@ function CierreCajaPage() {
       })
 
       if (response.status === 401 || response.status === 403) {
-        setError('Not authorized - please log in as CAJA or ADMIN')
+        setError('No autorizado - por favor inicia sesión como CAJA o ADMIN')
         return
       }
 
       if (!response.ok) {
-        setError('Failed to fetch daily summary')
+        setError('Error al cargar resumen del día')
         return
       }
 
       const data = await response.json()
       setResumenDia(data)
     } catch (err) {
-      setError('Error fetching daily summary: ' + err.message)
+      setError('Error al cargar resumen del día: ' + err.message)
     } finally {
       setLoading(false)
     }
@@ -64,7 +64,7 @@ function CierreCajaPage() {
         setHistorial(data)
       }
     } catch (err) {
-      console.error('Error fetching historial:', err)
+      console.error('Error al cargar historial:', err)
     }
   }
 
@@ -102,13 +102,13 @@ function CierreCajaPage() {
       })
 
       if (response.status === 401 || response.status === 403) {
-        setError('Not authorized - please log in as CAJA or ADMIN')
+        setError('No autorizado - por favor inicia sesión como CAJA o ADMIN')
         return
       }
 
       if (!response.ok) {
         const errorData = await response.json()
-        setError(errorData.message || 'Failed to create cierre')
+        setError(errorData.message || 'Error al crear cierre')
         return
       }
 
@@ -119,7 +119,7 @@ function CierreCajaPage() {
       fetchResumenDia()
       fetchHistorial()
     } catch (err) {
-      setError('Error creating cierre: ' + err.message)
+      setError('Error al crear cierre: ' + err.message)
     }
   }
 
@@ -139,14 +139,14 @@ function CierreCajaPage() {
       <div className="centered-container">
         <div className="card">
           <h2>Cierre de Caja</h2>
-          <p>You must log in as CAJA or ADMIN to view this page.</p>
-          <Link to="/login" className="btn-primary">Go to Login</Link>
+          <p>Debes iniciar sesión como CAJA o ADMIN para ver esta página.</p>
+          <Link to="/login" className="btn-primary">Ir a Iniciar Sesión</Link>
         </div>
       </div>
     )
   }
 
-  if (loading) return <div className="loading">Loading cierre de caja</div>
+  if (loading) return <div className="loading">Cargando cierre de caja</div>
 
   return (
     <div>

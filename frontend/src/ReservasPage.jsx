@@ -36,7 +36,7 @@ function ReservasPage() {
       ])
 
       if (!reservasRes.ok || !mesasRes.ok) {
-        setError('Failed to fetch data')
+        setError('Error al cargar datos')
         setLoading(false)
         return
       }
@@ -49,7 +49,7 @@ function ReservasPage() {
       setReservas(reservasData)
       setMesas(mesasData)
     } catch (err) {
-      setError('Error fetching data: ' + err.message)
+      setError('Error al cargar datos: ' + err.message)
     } finally {
       setLoading(false)
     }
@@ -60,7 +60,7 @@ function ReservasPage() {
     setError('')
 
     if (!newReserva.mesaId) {
-      setError('Please select a mesa')
+      setError('Por favor selecciona una mesa')
       return
     }
 
@@ -89,7 +89,7 @@ function ReservasPage() {
 
       if (!response.ok) {
         const errorText = await response.text()
-        setError('Failed to create reserva: ' + errorText)
+        setError('Error al crear reserva: ' + errorText)
         return
       }
 
@@ -104,7 +104,7 @@ function ReservasPage() {
       })
       fetchData()
     } catch (err) {
-      setError('Error creating reserva: ' + err.message)
+      setError('Error al crear reserva: ' + err.message)
     }
   }
 
@@ -120,13 +120,13 @@ function ReservasPage() {
 
       if (!response.ok) {
         const errorText = await response.text()
-        setError('Failed to cancel reserva: ' + errorText)
+        setError('Error al cancelar reserva: ' + errorText)
         return
       }
 
       fetchData()
     } catch (err) {
-      setError('Error canceling reserva: ' + err.message)
+      setError('Error al cancelar reserva: ' + err.message)
     }
   }
 
@@ -135,8 +135,8 @@ function ReservasPage() {
       <div className="centered-container">
         <div className="card">
           <h2>Reservas</h2>
-          <p>You must log in to view this page</p>
-          <Link to="/login" className="btn-primary">Go to Login</Link>
+          <p>Debes iniciar sesión para ver esta página</p>
+          <Link to="/login" className="btn-primary">Ir a Iniciar Sesión</Link>
         </div>
       </div>
     )
@@ -144,13 +144,13 @@ function ReservasPage() {
 
   return (
     <div>
-      <h1>Reservas - Reservations</h1>
+      <h1>Gestión de Reservas</h1>
 
       {error && <div className="alert alert-error">{error}</div>}
 
       <div className="card">
         <div className="card-header">
-          <h2>Create Reservation</h2>
+          <h2>Crear Reserva</h2>
         </div>
 
         <form onSubmit={handleCreateReserva}>
@@ -163,7 +163,7 @@ function ReservasPage() {
             onChange={(e) => setNewReserva({ ...newReserva, mesaId: e.target.value })}
             required
           >
-            <option value="">-- Select Mesa --</option>
+            <option value="">-- Seleccionar Mesa --</option>
             {mesas.map(mesa => (
               <option key={mesa.id} value={mesa.id}>
                 {mesa.codigo} (Capacidad: {mesa.capacidad})
@@ -171,7 +171,7 @@ function ReservasPage() {
             ))}
           </select>
           <label htmlFor="reserva-cliente">
-            Cliente Nombre:
+            Nombre del Cliente:
           </label>
           <input
             id="reserva-cliente"
@@ -230,17 +230,17 @@ function ReservasPage() {
             onChange={(e) => setNewReserva({ ...newReserva, cantidadPersonas: parseInt(e.target.value) })}
             required
           />
-          <button type="submit" className="btn-primary">Create Reservation</button>
+          <button type="submit" className="btn-primary">Crear Reserva</button>
         </form>
       </div>
 
       <div className="card">
         <div className="card-header">
-          <h2>List Reservations</h2>
+          <h2>Listado de Reservas</h2>
         </div>
 
         {loading ? (
-          <div className="loading">Loading</div>
+          <div className="loading">Cargando</div>
         ) : (
           <table>
             <thead>
@@ -253,13 +253,13 @@ function ReservasPage() {
                 <th>Hora</th>
                 <th>Personas</th>
                 <th>Estado</th>
-                <th>Actions</th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
               {reservas.length === 0 ? (
                 <tr>
-                  <td colSpan="9">No reservas found</td>
+                  <td colSpan="9">No se encontraron reservas</td>
                 </tr>
               ) : (
                 reservas.map(reserva => (

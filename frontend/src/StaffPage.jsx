@@ -35,13 +35,13 @@ function StaffPage() {
       })
 
       if (response.status === 401 || response.status === 403) {
-        setError('Not authorized - please log in as ADMIN')
+        setError('No autorizado - por favor inicia sesión como ADMIN')
         setLoading(false)
         return
       }
 
       if (!response.ok) {
-        setError('Failed to fetch usuarios')
+        setError('Error al cargar usuarios')
         setLoading(false)
         return
       }
@@ -56,7 +56,7 @@ function StaffPage() {
       })
       setRoleUpdates(updates)
     } catch (err) {
-      setError('Error fetching usuarios: ' + err.message)
+      setError('Error al cargar usuarios: ' + err.message)
     } finally {
       setLoading(false)
     }
@@ -78,21 +78,21 @@ function StaffPage() {
       })
 
       if (response.status === 401 || response.status === 403) {
-        setError('Not authorized - please log in as ADMIN')
+        setError('No autorizado - por favor inicia sesión como ADMIN')
         return
       }
 
       if (!response.ok) {
         const errorData = await response.json()
-        setError(`Failed to create user: ${errorData.error || 'Unknown error'}`)
+        setError(`Error al crear usuario: ${errorData.error || 'Error desconocido'}`)
         return
       }
 
-      setSuccess(`Usuario "${newUser.email}" created successfully!`)
+      setSuccess(`Usuario "${newUser.email}" creado exitosamente!`)
       setNewUser({ email: '', password: '', rol: 'MESERO' })
       fetchUsuarios()
     } catch (err) {
-      setError('Error creating user: ' + err.message)
+      setError('Error al crear usuario: ' + err.message)
     }
   }
 
@@ -111,20 +111,20 @@ function StaffPage() {
       })
 
       if (response.status === 401 || response.status === 403) {
-        setError('Not authorized - please log in as ADMIN')
+        setError('No autorizado - por favor inicia sesión como ADMIN')
         return
       }
 
       if (!response.ok) {
         const errorData = await response.json()
-        setError(`Failed to update rol: ${errorData.error || 'Unknown error'}`)
+        setError(`Error al actualizar rol: ${errorData.error || 'Error desconocido'}`)
         return
       }
 
-      setSuccess('Rol updated successfully!')
+      setSuccess('Rol actualizado exitosamente!')
       fetchUsuarios()
     } catch (err) {
-      setError('Error updating rol: ' + err.message)
+      setError('Error al actualizar rol: ' + err.message)
     }
   }
 
@@ -143,20 +143,20 @@ function StaffPage() {
       })
 
       if (response.status === 401 || response.status === 403) {
-        setError('Not authorized - please log in as ADMIN')
+        setError('No autorizado - por favor inicia sesión como ADMIN')
         return
       }
 
       if (!response.ok) {
         const errorData = await response.json()
-        setError(`Failed to delete user: ${errorData.error || 'Unknown error'}`)
+        setError(`Error al eliminar usuario: ${errorData.error || 'Error desconocido'}`)
         return
       }
 
-      setSuccess(`Usuario "${email}" deleted successfully!`)
+      setSuccess(`Usuario "${email}" eliminado exitosamente!`)
       fetchUsuarios()
     } catch (err) {
-      setError('Error deleting user: ' + err.message)
+      setError('Error al eliminar usuario: ' + err.message)
     }
   }
 
@@ -164,20 +164,20 @@ function StaffPage() {
     return (
       <div className="centered-container">
         <div className="card">
-          <h2>Staff Management</h2>
-          <p>You must log in as ADMIN to view this page.</p>
-          <Link to="/login" className="btn-primary">Go to Login</Link>
+          <h2>Gestión de Personal</h2>
+          <p>Debes iniciar sesión como ADMIN para ver esta página.</p>
+          <Link to="/login" className="btn-primary">Ir a Iniciar Sesión</Link>
         </div>
       </div>
     )
   }
 
-  if (loading) return <div className="loading">Loading staff</div>
+  if (loading) return <div className="loading">Cargando personal</div>
   if (error && usuarios.length === 0) return <div className="alert alert-error">Error: {error}</div>
 
   return (
     <div>
-      <h1>Staff Management</h1>
+      <h1>Gestión de Personal</h1>
 
       {success && <div className="alert alert-success">{success}</div>}
       {error && <div className="alert alert-error">{error}</div>}
@@ -203,13 +203,13 @@ function StaffPage() {
             </div>
 
             <div className="form-group">
-              <label htmlFor="password">Password</label>
+              <label htmlFor="password">Contraseña</label>
               <input
                 id="password"
                 type="password"
                 value={newUser.password}
                 onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                placeholder="Enter password"
+                placeholder="Ingresa contraseña"
                 required
                 minLength={6}
               />
