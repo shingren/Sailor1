@@ -145,6 +145,8 @@ p {
   color: white;
   padding: 1rem 2rem;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 100;
 }
 
 .navbar-content {
@@ -185,12 +187,12 @@ p {
 .sidebar {
   position: fixed;
   left: 0;
-  top: 60px; /* Below navbar */
-  height: calc(100vh - 60px);
+  top: 0;
+  height: 100vh;
   background-color: var(--color-neutral-800);
   color: white;
   transition: width var(--transition-base);
-  z-index: 90;
+  z-index: 110;
   overflow-x: hidden;
   box-shadow: var(--shadow-lg);
 }
@@ -857,8 +859,8 @@ tbody tr:last-child td {
   }
 
   .sidebar {
-    top: 55px;
-    height: calc(100vh - 55px);
+    top: 0;
+    height: 100vh;
   }
 
   .main-content {
