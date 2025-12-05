@@ -1,6 +1,8 @@
 package com.sailor.entity;
 
 import jakarta.persistence.*;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "pedido_items")
@@ -23,6 +25,9 @@ public class PedidoItem {
 
     @Column(nullable = false)
     private double precioUnitario;
+
+    @OneToMany(mappedBy = "pedidoItem", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PedidoItemExtra> extras = new ArrayList<>();
 
     public PedidoItem() {
     }
@@ -65,5 +70,13 @@ public class PedidoItem {
 
     public void setPrecioUnitario(double precioUnitario) {
         this.precioUnitario = precioUnitario;
+    }
+
+    public List<PedidoItemExtra> getExtras() {
+        return extras;
+    }
+
+    public void setExtras(List<PedidoItemExtra> extras) {
+        this.extras = extras;
     }
 }

@@ -11,6 +11,8 @@ function FacturasPage() {
 
   const [genFacturaId, setGenFacturaId] = useState('')
   const [pagoForms, setPagoForms] = useState({})
+  const [expandedFacturas, setExpandedFacturas] = useState({})
+  const [pedidoDetails, setPedidoDetails] = useState({})
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -140,6 +142,31 @@ function FacturasPage() {
     }
   }
 
+  const toggleFacturaDetails = async (facturaId, pedidoId) => {
+    if (expandedFacturas[facturaId]) {
+      // Collapse
+      setExpandedFacturas(prev => ({ ...prev, [facturaId]: false }))
+    } else {
+      // Expand and fetch pedido details if not already loaded
+      setExpandedFacturas(prev => ({ ...prev, [facturaId]: true }))
+
+      if (!pedidoDetails[pedidoId]) {
+        try {
+          const response = await fetch(`/api/pedidos/${pedidoId}`, {
+            headers: { 'Authorization': getAuthHeader() }
+          })
+
+          if (response.ok) {
+            const data = await response.json()
+            setPedidoDetails(prev => ({ ...prev, [pedidoId]: data }))
+          }
+        } catch (err) {
+          console.error('Error fetching pedido details:', err)
+        }
+      }
+    }
+  }
+
   if (!isAuthenticated) {
     return (
       <div className="centered-container">
@@ -218,81 +245,153 @@ function FacturasPage() {
         </div>
         {loading ? (
           <div className="loading">Cargando</div>
+        ) : facturas.length === 0 ? (
+          <p className="text-muted">No se encontraron facturas</p>
         ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>ID Factura</th>
-                <th>ID Pedido</th>
-                <th>Fecha</th>
-                <th>Total</th>
-                <th>Estado</th>
-                <th>Pagos</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {facturas.length === 0 ? (
-                <tr>
-                  <td colSpan="7">No se encontraron facturas</td>
-                </tr>
-              ) : (
-                facturas.map(factura => {
-                  const pagoForm = pagoForms[factura.id] || {}
-                  return (
-                    <tr key={factura.id}>
-                      <td>{factura.id}</td>
-                      <td>{factura.pedidoId}</td>
-                      <td>{new Date(factura.fechaHora).toLocaleString()}</td>
-                      <td>${factura.total.toFixed(2)}</td>
-                      <td>
-                        <span className={`badge ${
-                          factura.estado === 'PENDIENTE' ? 'badge-yellow' :
-                          factura.estado === 'PAGADO' ? 'badge-green' :
-                          'badge-gray'
-                        }`}>
-                          {factura.estado}
-                        </span>
-                      </td>
-                      <td>{factura.pagos.length} pagos</td>
-                      <td>
-                        {factura.estado === 'PENDIENTE' ? (
-                          <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-                            <label htmlFor={`monto-${factura.id}`}>
-                              Monto:
-                            </label>
-                            <input
-                              id={`monto-${factura.id}`}
-                              type="number"
-                              step="0.01"
-                              value={pagoForm.monto || ''}
-                              onChange={(e) => handlePagoFormChange(factura.id, 'monto', e.target.value)}
-                              style={{ width: '80px' }}
-                            />
-                            <label htmlFor={`metodo-${factura.id}`}>
-                              Método:
-                            </label>
-                            <select
-                              id={`metodo-${factura.id}`}
-                              value={pagoForm.metodo || ''}
-                              onChange={(e) => handlePagoFormChange(factura.id, 'metodo', e.target.value)}
-                            >
-                              <option value="">-- Seleccionar --</option>
-                              <option value="EFECTIVO">EFECTIVO</option>
-                              <option value="TARJETA">TARJETA</option>
-                            </select>
-                            <button onClick={() => registrarPago(factura.id)} className="btn-success btn-small">Registrar Pago</button>
-                          </div>
-                        ) : (
-                          <span>-</span>
-                        )}
-                      </td>
-                    </tr>
-                  )
-                })
-              )}
-            </tbody>
-          </table>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            {facturas.map(factura => {
+              const pagoForm = pagoForms[factura.id] || {}
+              const isExpanded = expandedFacturas[factura.id]
+              const pedido = pedidoDetails[factura.pedidoId]
+
+              return (
+                <div key={factura.id} style={{ border: '1px solid #ddd', borderRadius: '8px', padding: '15px', backgroundColor: '#fafafa' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <div>
+                      <strong style={{ fontSize: '1.1rem' }}>Factura #{factura.id}</strong>
+                      <span style={{ marginLeft: '15px' }}>Pedido: <strong>#{factura.pedidoId}</strong></span>
+                      <span style={{ marginLeft: '15px' }}>{new Date(factura.fechaHora).toLocaleString()}</span>
+                    </div>
+                    <span className={`badge ${
+                      factura.estado === 'PENDIENTE' ? 'badge-yellow' :
+                      factura.estado === 'PAGADO' || factura.estado === 'PAGADA' ? 'badge-green' :
+                      'badge-gray'
+                    }`}>
+                      {factura.estado}
+                    </span>
+                  </div>
+
+                  <div style={{ marginTop: '10px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px' }}>
+                    <div>
+                      <span style={{ fontSize: '0.85em', color: '#666' }}>Subtotal:</span>
+                      <div><strong>{formatCurrency(factura.subtotal)}</strong></div>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '0.85em', color: '#666' }}>Impuestos (13%):</span>
+                      <div><strong>{formatCurrency(factura.impuestos)}</strong></div>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '0.85em', color: '#666' }}>Descuento:</span>
+                      <div><strong>{formatCurrency(factura.descuento)}</strong></div>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '0.85em', color: '#666' }}>Total:</span>
+                      <div style={{ fontSize: '1.2em', color: '#059669' }}><strong>{formatCurrency(factura.total)}</strong></div>
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: '15px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <button
+                      onClick={() => toggleFacturaDetails(factura.id, factura.pedidoId)}
+                      className="btn-secondary btn-small"
+                    >
+                      {isExpanded ? 'Ocultar Detalle' : 'Ver Detalle'}
+                    </button>
+
+                    {factura.estado === 'PENDIENTE' && (
+                      <div style={{ display: 'flex', gap: '5px', alignItems: 'center', marginLeft: 'auto' }}>
+                        <label htmlFor={`monto-${factura.id}`} style={{ fontSize: '0.9em' }}>
+                          Monto:
+                        </label>
+                        <input
+                          id={`monto-${factura.id}`}
+                          type="number"
+                          step="0.01"
+                          value={pagoForm.monto || ''}
+                          onChange={(e) => handlePagoFormChange(factura.id, 'monto', e.target.value)}
+                          style={{ width: '100px' }}
+                        />
+                        <label htmlFor={`metodo-${factura.id}`} style={{ fontSize: '0.9em' }}>
+                          Método:
+                        </label>
+                        <select
+                          id={`metodo-${factura.id}`}
+                          value={pagoForm.metodo || ''}
+                          onChange={(e) => handlePagoFormChange(factura.id, 'metodo', e.target.value)}
+                        >
+                          <option value="">-- Seleccionar --</option>
+                          <option value="EFECTIVO">EFECTIVO</option>
+                          <option value="TARJETA">TARJETA</option>
+                        </select>
+                        <button onClick={() => registrarPago(factura.id)} className="btn-success btn-small">Registrar Pago</button>
+                      </div>
+                    )}
+                  </div>
+
+                  {isExpanded && pedido && (
+                    <div style={{ marginTop: '15px', padding: '10px', backgroundColor: '#fff', borderRadius: '4px', border: '1px solid #e5e7eb' }}>
+                      <strong>Detalle del Pedido:</strong>
+                      <ul style={{ marginTop: '8px', marginLeft: '20px' }}>
+                        {pedido.items.map((item, idx) => {
+                          const itemSubtotal = item.cantidad * item.precioUnitario
+                          const extrasSubtotal = item.extras?.reduce((sum, extra) => sum + (extra.cantidad * extra.precioUnitario * item.cantidad), 0) || 0
+                          const itemTotal = itemSubtotal + extrasSubtotal
+
+                          return (
+                            <li key={idx} style={{ marginBottom: '10px' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <div>
+                                  <strong>{item.cantidad}x</strong> {item.productoNombre}
+                                </div>
+                                <div style={{ marginLeft: '15px' }}>
+                                  {formatCurrency(itemSubtotal)}
+                                </div>
+                              </div>
+                              {item.extras && item.extras.length > 0 && (
+                                <ul style={{ marginTop: '4px', marginLeft: '20px', listStyleType: 'circle', fontSize: '0.9em', color: '#666' }}>
+                                  {item.extras.map((extra, extraIdx) => (
+                                    <li key={extraIdx} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                      <span>+ {extra.nombre} x{extra.cantidad}</span>
+                                      <span style={{ marginLeft: '10px' }}>
+                                        {formatCurrency(extra.cantidad * extra.precioUnitario * item.cantidad)}
+                                      </span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                              {item.extras && item.extras.length > 0 && (
+                                <div style={{ fontSize: '0.85em', color: '#059669', marginTop: '4px', marginLeft: '20px' }}>
+                                  Subtotal del ítem: {formatCurrency(itemTotal)}
+                                </div>
+                              )}
+                            </li>
+                          )
+                        })}
+                      </ul>
+                      {pedido.observaciones && (
+                        <div style={{ marginTop: '10px', padding: '8px', backgroundColor: '#fff3cd', borderLeft: '3px solid #ffc107', borderRadius: '4px' }}>
+                          <strong>Observaciones:</strong> {pedido.observaciones}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {factura.pagos.length > 0 && (
+                    <div style={{ marginTop: '10px', fontSize: '0.9em' }}>
+                      <strong>Pagos registrados:</strong>
+                      <ul style={{ marginLeft: '20px', marginTop: '5px' }}>
+                        {factura.pagos.map((pago, idx) => (
+                          <li key={idx}>
+                            {formatCurrency(pago.monto)} - {pago.metodo} ({new Date(pago.fechaHora).toLocaleString()})
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
         )}
       </div>
     </div>

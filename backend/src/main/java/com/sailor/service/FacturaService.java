@@ -38,7 +38,17 @@ public class FacturaService {
         }
 
         double subtotal = pedido.getItems().stream()
-                .mapToDouble(item -> item.getCantidad() * item.getPrecioUnitario())
+                .mapToDouble(item -> {
+                    // Base item price
+                    double itemTotal = item.getCantidad() * item.getPrecioUnitario();
+
+                    // Add extras price
+                    double extrasTotal = item.getExtras().stream()
+                            .mapToDouble(extra -> extra.getCantidad() * extra.getPrecioUnitario() * item.getCantidad())
+                            .sum();
+
+                    return itemTotal + extrasTotal;
+                })
                 .sum();
 
         double impuestos = subtotal * 0.13;

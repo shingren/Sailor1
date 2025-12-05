@@ -1,11 +1,14 @@
 package com.sailor.dto;
 
+import java.util.List;
+
 public class PedidoItemResponseDTO {
     private Long id;
     private Long productoId;
     private String productoNombre;
     private int cantidad;
     private double precioUnitario;
+    private List<PedidoItemExtraResponseDTO> extras;
 
     public PedidoItemResponseDTO() {
     }
@@ -48,5 +51,13 @@ public class PedidoItemResponseDTO {
 
     public void setPrecioUnitario(double precioUnitario) {
         this.precioUnitario = precioUnitario;
+    }
+
+    public List<PedidoItemExtraResponseDTO> getExtras() {
+        return extras;
+    }
+
+    public void setExtras(List<PedidoItemExtraResponseDTO> extras) {
+        this.extras = extras;
     }
 }

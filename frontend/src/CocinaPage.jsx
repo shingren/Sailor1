@@ -165,8 +165,19 @@ function CocinaPage() {
                   <strong>Detalles del pedido:</strong>
                   <ul style={{ marginTop: '8px', marginLeft: '20px' }}>
                     {pedido.items.map((item, idx) => (
-                      <li key={idx} style={{ marginBottom: '5px' }}>
-                        <strong>{item.cantidad}x</strong> {item.productoNombre || `Producto ID: ${item.productoId}`}
+                      <li key={idx} style={{ marginBottom: '8px' }}>
+                        <div>
+                          <strong>{item.cantidad}x</strong> {item.productoNombre || `Producto ID: ${item.productoId}`}
+                        </div>
+                        {item.extras && item.extras.length > 0 && (
+                          <ul style={{ marginTop: '4px', marginLeft: '20px', listStyleType: 'circle', color: '#666' }}>
+                            {item.extras.map((extra, extraIdx) => (
+                              <li key={extraIdx} style={{ fontSize: '0.9em', marginBottom: '2px' }}>
+                                + {extra.nombre} x{extra.cantidad}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                       </li>
                     ))}
                   </ul>

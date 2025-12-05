@@ -9,6 +9,7 @@ function PedidosPage() {
   const [pedidos, setPedidos] = useState([])
   const [mesas, setMesas] = useState([])
   const [productos, setProductos] = useState([])
+  const [recetas, setRecetas] = useState([])
 
   const [loading, setLoading] = useState(true)
   const [loadingMesas, setLoadingMesas] = useState(true)
@@ -18,7 +19,7 @@ function PedidosPage() {
   const [formData, setFormData] = useState({
     mesaId: '',
     observaciones: '',
-    items: [{ productoId: '', cantidad: '' }]
+    items: [{ productoId: '', cantidad: '', extras: [] }]
   })
 
   useEffect(() => {
@@ -26,6 +27,7 @@ function PedidosPage() {
       fetchPedidos()
       fetchMesas()
       fetchProductos()
+      fetchRecetas()
     }
   }, [isAuthenticated])
 
@@ -106,6 +108,21 @@ function PedidosPage() {
     }
   }
 
+  const fetchRecetas = async () => {
+    try {
+      const response = await fetch('/api/recetas', {
+        headers: { 'Authorization': getAuthHeader() }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setRecetas(data)
+      }
+    } catch (err) {
+      console.error('Error al cargar recetas:', err)
+    }
+  }
+
   const handleInputChange = (e) => {
     const { name, value } = e.target
     setFormData(prev => ({
@@ -116,7 +133,53 @@ function PedidosPage() {
 
   const handleItemChange = (index, field, value) => {
     const newItems = [...formData.items]
-    newItems[index][field] = field === 'cantidad' ? (value === '' ? '' : parseInt(value) || '') : parseInt(value) || ''
+    if (field === 'productoId') {
+      // When product changes, reset extras
+      newItems[index][field] = parseInt(value) || ''
+      newItems[index].extras = []
+    } else {
+      newItems[index][field] = field === 'cantidad' ? (value === '' ? '' : parseInt(value) || '') : parseInt(value) || ''
+    }
+    setFormData(prev => ({
+      ...prev,
+      items: newItems
+    }))
+  }
+
+  const getExtrasForProduct = (productoId) => {
+    if (!productoId) return []
+    const receta = recetas.find(r => r.productoId === parseInt(productoId))
+    return receta?.extras || []
+  }
+
+  const handleExtraToggle = (itemIndex, recetaExtra) => {
+    const newItems = [...formData.items]
+    const item = newItems[itemIndex]
+    const existingExtraIndex = item.extras.findIndex(e => e.recetaExtraId === recetaExtra.id)
+
+    if (existingExtraIndex >= 0) {
+      // Remove extra
+      item.extras = item.extras.filter((_, i) => i !== existingExtraIndex)
+    } else {
+      // Add extra with default quantity 1
+      item.extras.push({
+        recetaExtraId: recetaExtra.id,
+        nombre: recetaExtra.nombre,
+        precio: recetaExtra.precio,
+        cantidad: 1
+      })
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      items: newItems
+    }))
+  }
+
+  const updateExtraQuantity = (itemIndex, extraIndex, cantidad) => {
+    const newItems = [...formData.items]
+    const cantidadNum = parseInt(cantidad) || 1
+    newItems[itemIndex].extras[extraIndex].cantidad = cantidadNum > 0 ? cantidadNum : 1
     setFormData(prev => ({
       ...prev,
       items: newItems
@@ -126,7 +189,7 @@ function PedidosPage() {
   const addItem = () => {
     setFormData(prev => ({
       ...prev,
-      items: [...prev.items, { productoId: '', cantidad: '' }]
+      items: [...prev.items, { productoId: '', cantidad: '', extras: [] }]
     }))
   }
 
@@ -167,7 +230,11 @@ function PedidosPage() {
           observaciones: formData.observaciones,
           items: formData.items.map(item => ({
             productoId: parseInt(item.productoId),
-            cantidad: item.cantidad
+            cantidad: item.cantidad,
+            extras: item.extras.map(extra => ({
+              recetaExtraId: extra.recetaExtraId,
+              cantidad: extra.cantidad
+            }))
           }))
         })
       })
@@ -185,7 +252,7 @@ function PedidosPage() {
       setFormData({
         mesaId: '',
         observaciones: '',
-        items: [{ productoId: '', cantidad: '' }]
+        items: [{ productoId: '', cantidad: '', extras: [] }]
       })
 
       fetchPedidos()
@@ -361,8 +428,59 @@ function PedidosPage() {
                     style={{ width: '80px' }}
                   />
 
+                  {/* Extras Section */}
+                  {item.productoId && getExtrasForProduct(item.productoId).length > 0 && (
+                    <div style={{ marginTop: '12px', padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
+                      <strong style={{ fontSize: '0.9em' }}>Extras disponibles:</strong>
+                      {getExtrasForProduct(item.productoId).map((recetaExtra) => {
+                        const selectedExtra = item.extras.find(e => e.recetaExtraId === recetaExtra.id)
+                        const isSelected = !!selectedExtra
+
+                        return (
+                          <div key={recetaExtra.id} style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', flex: 1 }}>
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => handleExtraToggle(index, recetaExtra)}
+                                style={{ marginRight: '6px' }}
+                              />
+                              <span>{recetaExtra.nombre} (+${recetaExtra.precio.toFixed(2)})</span>
+                            </label>
+
+                            {isSelected && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                <label htmlFor={`extra-cantidad-${index}-${recetaExtra.id}`} style={{ fontSize: '0.85em' }}>
+                                  Cant:
+                                </label>
+                                <input
+                                  id={`extra-cantidad-${index}-${recetaExtra.id}`}
+                                  type="number"
+                                  min="1"
+                                  value={selectedExtra.cantidad}
+                                  onChange={(e) => {
+                                    const extraIndex = item.extras.findIndex(e => e.recetaExtraId === recetaExtra.id)
+                                    updateExtraQuantity(index, extraIndex, e.target.value)
+                                  }}
+                                  style={{ width: '50px' }}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+
+                  {/* Summary of selected extras */}
+                  {item.extras.length > 0 && (
+                    <div style={{ marginTop: '8px', fontSize: '0.85em', color: '#666', fontStyle: 'italic' }}>
+                      Resumen: {item.extras.map(e => `${e.nombre} x${e.cantidad}`).join(', ')}
+                    </div>
+                  )}
+
                   {formData.items.length > 1 && (
-                    <button type="button" onClick={() => removeItem(index)} className="btn-danger btn-small" style={{ marginLeft: '10px' }}>Eliminar</button>
+                    <button type="button" onClick={() => removeItem(index)} className="btn-danger btn-small" style={{ marginLeft: '10px', marginTop: '10px' }}>Eliminar</button>
                   )}
                 </div>
               ))}

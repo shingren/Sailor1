@@ -4,6 +4,8 @@ import com.sailor.dto.PedidoCreateRequestDTO;
 import com.sailor.dto.PedidoItemRequestDTO;
 import com.sailor.dto.PedidoItemResponseDTO;
 import com.sailor.dto.PedidoResponseDTO;
+import com.sailor.dto.PedidoItemExtraRequestDTO;
+import com.sailor.dto.PedidoItemExtraResponseDTO;
 import com.sailor.entity.*;
 import com.sailor.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +37,9 @@ public class PedidoService {
     @Autowired
     private MovimientoInsumoRepository movimientoInsumoRepository;
 
+    @Autowired
+    private RecetaExtraRepository recetaExtraRepository;
+
     @Transactional
     public PedidoResponseDTO createPedido(PedidoCreateRequestDTO request) {
         Mesa mesa = mesaRepository.findById(request.getMesaId())
@@ -53,6 +58,22 @@ public class PedidoService {
             item.setProducto(producto);
             item.setCantidad(itemRequest.getCantidad());
             item.setPrecioUnitario(producto.getPrecio());
+
+            // Handle extras if present
+            if (itemRequest.getExtras() != null && !itemRequest.getExtras().isEmpty()) {
+                for (PedidoItemExtraRequestDTO extraRequest : itemRequest.getExtras()) {
+                    RecetaExtra recetaExtra = recetaExtraRepository.findById(extraRequest.getRecetaExtraId())
+                            .orElseThrow(() -> new RuntimeException("RecetaExtra not found with id: " + extraRequest.getRecetaExtraId()));
+
+                    PedidoItemExtra pedidoItemExtra = new PedidoItemExtra();
+                    pedidoItemExtra.setPedidoItem(item);
+                    pedidoItemExtra.setRecetaExtra(recetaExtra);
+                    pedidoItemExtra.setCantidad(extraRequest.getCantidad());
+                    pedidoItemExtra.setPrecioUnitario(recetaExtra.getPrecio());
+
+                    item.getExtras().add(pedidoItemExtra);
+                }
+            }
 
             pedido.getItems().add(item);
         }
@@ -133,6 +154,31 @@ public class PedidoService {
                 movimientoInsumoRepository.save(movimiento);
                 insumoRepository.save(insumo);
             }
+
+            // Deduct inventory for extras
+            for (PedidoItemExtra extra : pedidoItem.getExtras()) {
+                RecetaExtra recetaExtra = extra.getRecetaExtra();
+                double cantidadADeducir = recetaExtra.getCantidadInsumo() * extra.getCantidad() * pedidoItem.getCantidad();
+                Insumo insumo = recetaExtra.getInsumo();
+
+                if (insumo.getStockActual() < cantidadADeducir) {
+                    throw new RuntimeException("Stock insuficiente para extra: " + recetaExtra.getNombre() +
+                            ". Disponible: " + insumo.getStockActual() + ", Necesario: " + cantidadADeducir);
+                }
+
+                insumo.setStockActual(insumo.getStockActual() - cantidadADeducir);
+
+                MovimientoInsumo movimiento = new MovimientoInsumo();
+                movimiento.setInsumo(insumo);
+                movimiento.setCantidad(-cantidadADeducir);
+                movimiento.setTipo("CONSUMO");
+                movimiento.setDescripcion("Consumo por pedido #" + pedido.getId() + " - Extra: " +
+                        recetaExtra.getNombre() + " x" + extra.getCantidad() + " (Item: " +
+                        pedidoItem.getProducto().getNombre() + " x" + pedidoItem.getCantidad() + ")");
+
+                movimientoInsumoRepository.save(movimiento);
+                insumoRepository.save(insumo);
+            }
         }
     }
 
@@ -160,6 +206,22 @@ public class PedidoService {
         dto.setProductoNombre(item.getProducto().getNombre());
         dto.setCantidad(item.getCantidad());
         dto.setPrecioUnitario(item.getPrecioUnitario());
+
+        // Map extras
+        List<PedidoItemExtraResponseDTO> extraDTOs = item.getExtras().stream()
+                .map(this::mapExtraToResponseDTO)
+                .collect(Collectors.toList());
+        dto.setExtras(extraDTOs);
+
+        return dto;
+    }
+
+    private PedidoItemExtraResponseDTO mapExtraToResponseDTO(PedidoItemExtra extra) {
+        PedidoItemExtraResponseDTO dto = new PedidoItemExtraResponseDTO();
+        dto.setId(extra.getId());
+        dto.setNombre(extra.getRecetaExtra().getNombre());
+        dto.setCantidad(extra.getCantidad());
+        dto.setPrecioUnitario(extra.getPrecioUnitario());
         return dto;
     }
 }
