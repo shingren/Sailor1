@@ -1,6 +1,7 @@
 package com.sailor.service;
 
 import com.sailor.dto.UsuarioCreateRequestDTO;
+import com.sailor.dto.UsuarioEditRequestDTO;
 import com.sailor.dto.UsuarioResponseDTO;
 import com.sailor.entity.Usuario;
 import com.sailor.repository.UsuarioRepository;
@@ -34,6 +35,7 @@ public class UsuarioService {
 
         // Create new usuario
         Usuario usuario = new Usuario();
+        usuario.setNombre(request.getNombre());
         usuario.setEmail(request.getEmail());
         usuario.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         usuario.setRol(request.getRol());
@@ -51,6 +53,24 @@ public class UsuarioService {
         return mapToResponseDTO(updated);
     }
 
+    public UsuarioResponseDTO editUsuario(Long id, UsuarioEditRequestDTO request) {
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usuario not found with id: " + id));
+
+        // Update nombre if provided
+        if (request.getNombre() != null && !request.getNombre().trim().isEmpty()) {
+            usuario.setNombre(request.getNombre());
+        }
+
+        // Update password if provided
+        if (request.getPassword() != null && !request.getPassword().trim().isEmpty()) {
+            usuario.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        }
+
+        Usuario updated = usuarioRepository.save(usuario);
+        return mapToResponseDTO(updated);
+    }
+
     public void deleteUsuario(Long id) {
         if (!usuarioRepository.existsById(id)) {
             throw new RuntimeException("Usuario not found with id: " + id);
@@ -61,6 +81,7 @@ public class UsuarioService {
     private UsuarioResponseDTO mapToResponseDTO(Usuario usuario) {
         return new UsuarioResponseDTO(
                 usuario.getId(),
+                usuario.getNombre(),
                 usuario.getEmail(),
                 usuario.getRol()
         );

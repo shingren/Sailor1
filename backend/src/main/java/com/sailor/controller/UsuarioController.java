@@ -1,6 +1,7 @@
 package com.sailor.controller;
 
 import com.sailor.dto.UsuarioCreateRequestDTO;
+import com.sailor.dto.UsuarioEditRequestDTO;
 import com.sailor.dto.UsuarioResponseDTO;
 import com.sailor.dto.UsuarioRoleUpdateRequestDTO;
 import com.sailor.service.UsuarioService;
@@ -31,6 +32,11 @@ public class UsuarioController {
     @PutMapping("/{id}/rol")
     public UsuarioResponseDTO updateRol(@PathVariable Long id, @RequestBody UsuarioRoleUpdateRequestDTO request) {
         return usuarioService.updateRol(id, request.getRol());
+    }
+
+    @PutMapping("/{id}")
+    public UsuarioResponseDTO editUsuario(@PathVariable Long id, @RequestBody UsuarioEditRequestDTO request) {
+        return usuarioService.editUsuario(id, request);
     }
 
     @DeleteMapping("/{id}")

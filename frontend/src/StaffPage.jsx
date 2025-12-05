@@ -13,6 +13,7 @@ function StaffPage() {
 
   // Form state for creating user
   const [newUser, setNewUser] = useState({
+    nombre: '',
     email: '',
     password: '',
     rol: 'MESERO'
@@ -20,6 +21,13 @@ function StaffPage() {
 
   // State for role updates (indexed by usuario ID)
   const [roleUpdates, setRoleUpdates] = useState({})
+
+  // State for editing user
+  const [editingUserId, setEditingUserId] = useState(null)
+  const [editForm, setEditForm] = useState({
+    nombre: '',
+    password: ''
+  })
 
   useEffect(() => {
     if (!isAuthenticated) return
@@ -88,8 +96,8 @@ function StaffPage() {
         return
       }
 
-      setSuccess(`Usuario "${newUser.email}" creado exitosamente!`)
-      setNewUser({ email: '', password: '', rol: 'MESERO' })
+      setSuccess(`Usuario "${newUser.nombre}" creado exitosamente!`)
+      setNewUser({ nombre: '', email: '', password: '', rol: 'MESERO' })
       fetchUsuarios()
     } catch (err) {
       setError('Error al crear usuario: ' + err.message)
@@ -125,6 +133,64 @@ function StaffPage() {
       fetchUsuarios()
     } catch (err) {
       setError('Error al actualizar rol: ' + err.message)
+    }
+  }
+
+  const handleStartEdit = (usuario) => {
+    setEditingUserId(usuario.id)
+    setEditForm({
+      nombre: usuario.nombre,
+      password: '' // Leave password empty - only fill if changing
+    })
+    setError(null)
+    setSuccess(null)
+  }
+
+  const handleCancelEdit = () => {
+    setEditingUserId(null)
+    setEditForm({ nombre: '', password: '' })
+  }
+
+  const handleSaveEdit = async (usuarioId) => {
+    setError(null)
+    setSuccess(null)
+
+    // Validate that at least nombre is provided
+    if (!editForm.nombre || editForm.nombre.trim() === '') {
+      setError('El nombre no puede estar vacío')
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/usuarios/${usuarioId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': getAuthHeader()
+        },
+        body: JSON.stringify({
+          nombre: editForm.nombre,
+          password: editForm.password || undefined // Only send if provided
+        })
+      })
+
+      if (response.status === 401 || response.status === 403) {
+        setError('No autorizado - por favor inicia sesión como ADMIN')
+        return
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        setError(`Error al editar usuario: ${errorData.error || 'Error desconocido'}`)
+        return
+      }
+
+      setSuccess('Usuario actualizado exitosamente!')
+      setEditingUserId(null)
+      setEditForm({ nombre: '', password: '' })
+      fetchUsuarios()
+    } catch (err) {
+      setError('Error al editar usuario: ' + err.message)
     }
   }
 
@@ -191,6 +257,18 @@ function StaffPage() {
         <form onSubmit={handleCreateUser}>
           <div className="form-row">
             <div className="form-group">
+              <label htmlFor="nombre">Nombre</label>
+              <input
+                id="nombre"
+                type="text"
+                value={newUser.nombre}
+                onChange={(e) => setNewUser({ ...newUser, nombre: e.target.value })}
+                placeholder="Nombre completo"
+                required
+              />
+            </div>
+
+            <div className="form-group">
               <label htmlFor="email">Email</label>
               <input
                 id="email"
@@ -247,6 +325,7 @@ function StaffPage() {
             <thead>
               <tr>
                 <th>ID</th>
+                <th>Nombre</th>
                 <th>Email</th>
                 <th>Rol Actual</th>
                 <th>Cambiar Rol</th>
@@ -254,52 +333,110 @@ function StaffPage() {
               </tr>
             </thead>
             <tbody>
-              {usuarios.map((usuario) => (
-                <tr key={usuario.id}>
-                  <td>{usuario.id}</td>
-                  <td><strong>{usuario.email}</strong></td>
-                  <td>
-                    <span className={`badge ${
-                      usuario.rol === 'ADMIN' ? 'badge-red' :
-                      usuario.rol === 'MESERO' ? 'badge-blue' :
-                      usuario.rol === 'COCINA' ? 'badge-yellow' :
-                      usuario.rol === 'CAJA' ? 'badge-green' :
-                      usuario.rol === 'INVENTARIO' ? 'badge-purple' :
-                      'badge-gray'
-                    }`}>
-                      {usuario.rol}
-                    </span>
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                      <select
-                        value={roleUpdates[usuario.id] || usuario.rol}
-                        onChange={(e) => setRoleUpdates({ ...roleUpdates, [usuario.id]: e.target.value })}
-                        style={{ flex: 1 }}
-                      >
-                        {ROLES.map(r => (
-                          <option key={r} value={r}>{r}</option>
-                        ))}
-                      </select>
-                      <button
-                        onClick={() => handleUpdateRol(usuario.id)}
-                        className="btn-primary btn-small"
-                        disabled={roleUpdates[usuario.id] === usuario.rol}
-                      >
-                        Actualizar
-                      </button>
-                    </div>
-                  </td>
-                  <td>
-                    <button
-                      onClick={() => handleDelete(usuario.id, usuario.email)}
-                      className="btn-danger btn-small"
-                    >
-                      Eliminar
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {usuarios.map((usuario) => {
+                const isEditing = editingUserId === usuario.id
+
+                return (
+                  <tr key={usuario.id}>
+                    <td>{usuario.id}</td>
+                    <td>
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={editForm.nombre}
+                          onChange={(e) => setEditForm({ ...editForm, nombre: e.target.value })}
+                          placeholder="Nombre"
+                          style={{ width: '100%' }}
+                        />
+                      ) : (
+                        <strong>{usuario.nombre}</strong>
+                      )}
+                    </td>
+                    <td>
+                      {isEditing ? (
+                        <div>
+                          <div style={{ marginBottom: '5px' }}>{usuario.email}</div>
+                          <input
+                            type="password"
+                            value={editForm.password}
+                            onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+                            placeholder="Nueva contraseña (opcional)"
+                            style={{ width: '100%' }}
+                          />
+                        </div>
+                      ) : (
+                        usuario.email
+                      )}
+                    </td>
+                    <td>
+                      <span className={`badge ${
+                        usuario.rol === 'ADMIN' ? 'badge-red' :
+                        usuario.rol === 'MESERO' ? 'badge-blue' :
+                        usuario.rol === 'COCINA' ? 'badge-yellow' :
+                        usuario.rol === 'CAJA' ? 'badge-green' :
+                        usuario.rol === 'INVENTARIO' ? 'badge-purple' :
+                        'badge-gray'
+                      }`}>
+                        {usuario.rol}
+                      </span>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <select
+                          value={roleUpdates[usuario.id] || usuario.rol}
+                          onChange={(e) => setRoleUpdates({ ...roleUpdates, [usuario.id]: e.target.value })}
+                          style={{ flex: 1 }}
+                          disabled={isEditing}
+                        >
+                          {ROLES.map(r => (
+                            <option key={r} value={r}>{r}</option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={() => handleUpdateRol(usuario.id)}
+                          className="btn-primary btn-small"
+                          disabled={roleUpdates[usuario.id] === usuario.rol || isEditing}
+                        >
+                          Actualizar
+                        </button>
+                      </div>
+                    </td>
+                    <td>
+                      {isEditing ? (
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button
+                            onClick={() => handleSaveEdit(usuario.id)}
+                            className="btn-success btn-small"
+                          >
+                            Guardar
+                          </button>
+                          <button
+                            onClick={handleCancelEdit}
+                            className="btn-secondary btn-small"
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button
+                            onClick={() => handleStartEdit(usuario)}
+                            className="btn-warning btn-small"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            onClick={() => handleDelete(usuario.id, usuario.email)}
+                            className="btn-danger btn-small"
+                          >
+                            Eliminar
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         )}
