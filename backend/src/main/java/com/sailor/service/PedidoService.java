@@ -96,7 +96,14 @@ public class PedidoService {
 
     public List<PedidoResponseDTO> getActivePedidos() {
         return pedidoRepository.findAll().stream()
-                .filter(pedido -> !pedido.getEstado().equals("ENTREGADO"))
+                .filter(pedido -> !pedido.getEstado().equals("ENTREGADO") && !pedido.getEstado().equals("PAGADO"))
+                .map(this::mapToResponseDTO)
+                .collect(Collectors.toList());
+    }
+
+    public List<PedidoResponseDTO> getPedidosListosParaFacturar() {
+        return pedidoRepository.findAll().stream()
+                .filter(pedido -> pedido.getEstado().equals("ENTREGADO"))
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
     }

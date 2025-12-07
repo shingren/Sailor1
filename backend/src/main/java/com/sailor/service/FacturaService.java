@@ -101,6 +101,11 @@ public class FacturaService {
 
         if (totalPagado >= factura.getTotal()) {
             factura.setEstado("PAGADA");
+
+            // Update pedido estado to PAGADO
+            Pedido pedido = factura.getPedido();
+            pedido.setEstado("PAGADO");
+            pedidoRepository.save(pedido);
         }
 
         Factura savedFactura = facturaRepository.save(factura);

@@ -4,7 +4,8 @@ public enum PedidoEstado {
     PENDIENTE,
     PREPARACION,
     LISTO,
-    ENTREGADO;
+    ENTREGADO,
+    PAGADO;
 
     public static boolean isValid(String estado) {
         if (estado == null) return false;
@@ -30,6 +31,8 @@ public enum PedidoEstado {
             case LISTO:
                 return toEstado == ENTREGADO;
             case ENTREGADO:
+                return toEstado == PAGADO;
+            case PAGADO:
                 return false;
             default:
                 return false;

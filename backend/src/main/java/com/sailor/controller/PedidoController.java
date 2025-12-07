@@ -35,6 +35,11 @@ public class PedidoController {
         return pedidoService.getActivePedidos();
     }
 
+    @GetMapping("/listos-facturar")
+    public List<PedidoResponseDTO> getPedidosListosParaFacturar() {
+        return pedidoService.getPedidosListosParaFacturar();
+    }
+
     @PatchMapping("/{id}/estado")
     public PedidoResponseDTO cambiarEstado(@PathVariable Long id, @RequestBody EstadoRequest request) {
         return pedidoService.cambiarEstado(id, request.getEstado());
