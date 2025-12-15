@@ -10,7 +10,10 @@
       "Bash(tee:*)",
       "Bash(python -c \"import sys, json; print(json.load(open(''/tmp/login_response.json''))[''accessToken''])\")",
       "Bash(pkill:*)",
-      "Bash(pkill -f \"docker logs\")"
+      "Bash(pkill -f \"docker logs\")",
+      "Bash(cat:*)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiJ9.eyJyb2wiOiJBRE1JTiIsInN1YiI6ImFkbWluQHNhaWxvci5jb20iLCJpYXQiOjE3NjU3NjMyOTYsImV4cCI6MTc2NTc2NDE5Nn0.vLkKfVWId85_mdHZy0QXqbK_1G4LIAkz6iRuTIHjmhw\")",
+      "Bash(bash:*)"
     ],
     "deny": [],
     "ask": []

@@ -72,7 +72,9 @@ Sailor is a restaurant management system built with a Spring Boot backend and Re
 - **PedidoItemExtra**: Many-to-One with both PedidoItem and RecetaExtra
   - Tracks extras/add-ons selected for a specific order item
   - Stores quantity and price at time of order
-- **Factura** (Invoice): Many-to-One with Pedido, One-to-Many with Pago
+- **Factura** (Invoice): **One-to-One with Pedido** (unique constraint on pedido_id), One-to-Many with Pago
+  - A pedido can have only ONE factura (enforced at database and application level)
+  - Attempting to create a second factura for the same pedido returns HTTP 409 Conflict
 - **Pago** (Payment): Many-to-One with Factura, has `metodoPago` field (EFECTIVO, TARJETA)
 - **Insumo** (Ingredient): Standalone ingredient/supply entity with stock tracking
   - Fields: nombre, unidad, stockActual, stockMinimo

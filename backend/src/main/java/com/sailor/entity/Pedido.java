@@ -29,6 +29,9 @@ public class Pedido {
     @OneToMany(mappedBy = "pedido", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PedidoItem> items = new ArrayList<>();
 
+    @OneToOne(mappedBy = "pedido")
+    private Factura factura;
+
     public Pedido() {
         this.fechaHora = LocalDateTime.now();
     }
@@ -79,5 +82,13 @@ public class Pedido {
 
     public void setItems(List<PedidoItem> items) {
         this.items = items;
+    }
+
+    public Factura getFactura() {
+        return factura;
+    }
+
+    public void setFactura(Factura factura) {
+        this.factura = factura;
     }
 }

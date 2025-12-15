@@ -6,6 +6,7 @@ import com.sailor.entity.Factura;
 import com.sailor.entity.Pago;
 import com.sailor.entity.Pedido;
 import com.sailor.entity.PedidoItem;
+import com.sailor.exception.FacturaAlreadyExistsException;
 import com.sailor.repository.FacturaRepository;
 import com.sailor.repository.PagoRepository;
 import com.sailor.repository.PedidoRepository;
@@ -35,6 +36,11 @@ public class FacturaService {
 
         if (!pedido.getEstado().equals("LISTO") && !pedido.getEstado().equals("ENTREGADO")) {
             throw new RuntimeException("Can only generate factura for pedido with estado LISTO or ENTREGADO");
+        }
+
+        // Validate that factura doesn't already exist for this pedido (One-to-One relationship)
+        if (facturaRepository.existsByPedido(pedido)) {
+            throw new FacturaAlreadyExistsException("Ya existe una factura para el pedido #" + pedidoId);
         }
 
         double subtotal = pedido.getItems().stream()
