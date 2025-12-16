@@ -20,6 +20,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -143,6 +144,11 @@ public class FacturaService {
 
         if (totalPagado >= factura.getTotal()) {
             factura.setEstado(FacturaEstado.PAGADA);
+
+            // Set fechaHoraPago only once (idempotent)
+            if (factura.getFechaHoraPago() == null) {
+                factura.setFechaHoraPago(LocalDateTime.now());
+            }
 
             // Update pedido estado to PAGADO
             Pedido pedido = factura.getPedido();

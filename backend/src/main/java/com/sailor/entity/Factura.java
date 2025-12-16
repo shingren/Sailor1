@@ -20,6 +20,9 @@ public class Factura {
     @Column(nullable = false)
     private LocalDateTime fechaHora;
 
+    @Column(name = "fecha_hora_pago")
+    private LocalDateTime fechaHoraPago;
+
     @Column(nullable = false)
     private double subtotal;
 
@@ -65,6 +68,14 @@ public class Factura {
 
     public void setFechaHora(LocalDateTime fechaHora) {
         this.fechaHora = fechaHora;
+    }
+
+    public LocalDateTime getFechaHoraPago() {
+        return fechaHoraPago;
+    }
+
+    public void setFechaHoraPago(LocalDateTime fechaHoraPago) {
+        this.fechaHoraPago = fechaHoraPago;
     }
 
     public double getSubtotal() {

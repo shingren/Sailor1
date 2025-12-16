@@ -5,10 +5,12 @@ import com.sailor.dto.CierreCajaResponseDTO;
 import com.sailor.dto.ResumenDiaDTO;
 import com.sailor.entity.CierreCaja;
 import com.sailor.entity.Factura;
+import com.sailor.entity.FacturaEstado;
 import com.sailor.entity.Pago;
 import com.sailor.entity.Usuario;
 import com.sailor.repository.CierreCajaRepository;
 import com.sailor.repository.FacturaRepository;
+import com.sailor.repository.PagoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -26,37 +28,23 @@ public class CierreCajaService {
     @Autowired
     private FacturaRepository facturaRepository;
 
+    @Autowired
+    private PagoRepository pagoRepository;
+
     public ResumenDiaDTO generateDailySummary(LocalDate fecha, double saldoInicial) {
         // Get start and end of day
         LocalDateTime startOfDay = fecha.atStartOfDay();
-        LocalDateTime endOfDay = fecha.atTime(23, 59, 59);
+        LocalDateTime endOfDay = fecha.plusDays(1).atStartOfDay(); // Start of next day
 
-        // Query paid facturas for the given date
-        List<Factura> facturasPagadas = facturaRepository.findAll().stream()
-                .filter(f -> f.getEstado().equals("PAGADA"))
-                .filter(f -> f.getFechaHora().isAfter(startOfDay) && f.getFechaHora().isBefore(endOfDay))
-                .collect(Collectors.toList());
+        // Calculate totals by payment method based on pago.fechaHora
+        double totalEfectivo = pagoRepository.sumByMetodoAndFechaHoraBetween("EFECTIVO", startOfDay, endOfDay);
+        double totalTarjeta = pagoRepository.sumByMetodoAndFechaHoraBetween("TARJETA", startOfDay, endOfDay);
 
-        // Calculate totals
-        double totalVentasDia = facturasPagadas.stream()
-                .mapToDouble(Factura::getTotal)
-                .sum();
+        // Total sales of the day (sum of all payments made on this day)
+        double totalVentasDia = totalEfectivo + totalTarjeta;
 
-        int cantidadFacturas = facturasPagadas.size();
-
-        // Calculate totals by payment method
-        double totalEfectivo = 0.0;
-        double totalTarjeta = 0.0;
-
-        for (Factura factura : facturasPagadas) {
-            for (Pago pago : factura.getPagos()) {
-                if (pago.getMetodo().equals("EFECTIVO")) {
-                    totalEfectivo += pago.getMonto();
-                } else if (pago.getMetodo().equals("TARJETA")) {
-                    totalTarjeta += pago.getMonto();
-                }
-            }
-        }
+        // Count facturas that were fully paid on this day (based on fechaHoraPago)
+        int cantidadFacturas = facturaRepository.countByEstadoAndFechaHoraPagoBetween(FacturaEstado.PAGADA, startOfDay, endOfDay);
 
         // Calculate expected balance
         double saldoEsperado = totalEfectivo + saldoInicial;
