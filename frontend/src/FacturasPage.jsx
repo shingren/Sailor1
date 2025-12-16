@@ -8,6 +8,7 @@ function FacturasPage() {
   const [facturas, setFacturas] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
 
   const [genFacturaId, setGenFacturaId] = useState('')
   const [pagoForms, setPagoForms] = useState({})
@@ -44,6 +45,14 @@ function FacturasPage() {
       setPagoForms(prev => ({ ...prev, ...newPagoForms }))
     }
   }, [facturas])
+
+  // Helper function for currency formatting (must be defined before use in confirmation dialogs)
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: 'MXN'
+    }).format(amount || 0)
+  }
 
   const fetchFacturas = async () => {
     setLoading(true)
@@ -94,6 +103,29 @@ function FacturasPage() {
 
   const generarFacturaFromPedido = async (pedidoId) => {
     setError('')
+    setSuccessMessage('')
+
+    // Find pedido info for confirmation dialog
+    const pedido = pedidosListos.find(p => p.id === pedidoId)
+    let confirmMessage = `¿Confirmas generar la factura para el pedido #${pedidoId}?`
+
+    if (pedido) {
+      const totalEstimado = pedido.items.reduce((sum, item) => {
+        const itemTotal = item.cantidad * item.precioUnitario
+        const extrasTotal = (item.extras || []).reduce((eSum, extra) =>
+          eSum + (extra.cantidad * extra.precioUnitario * item.cantidad), 0)
+        return sum + itemTotal + extrasTotal
+      }, 0)
+
+      confirmMessage = `¿Confirmas generar la factura para el pedido #${pedidoId} (Mesa ${pedido.mesaCodigo}) por ${formatCurrency(totalEstimado)}?\n\nEsta acción no se puede deshacer.`
+    } else {
+      confirmMessage += '\n\nEsta acción no se puede deshacer.'
+    }
+
+    // Show confirmation dialog
+    if (!window.confirm(confirmMessage)) {
+      return
+    }
 
     try {
       const response = await fetch('/api/facturas', {
@@ -128,6 +160,8 @@ function FacturasPage() {
         return
       }
 
+      const facturaData = await response.json()
+      setSuccessMessage(`Factura #${facturaData.id} generada exitosamente para el pedido #${pedidoId}`)
       fetchFacturas()
       fetchPedidosListos()
     } catch (err) {
@@ -160,6 +194,7 @@ function FacturasPage() {
 
   const registrarPago = async (facturaId) => {
     setError('')
+    setSuccessMessage('')
     const form = pagoForms[facturaId] || {}
 
     if (!form.monto || form.monto <= 0) {
@@ -172,6 +207,47 @@ function FacturasPage() {
       return
     }
 
+    // Find factura for confirmation dialog
+    const factura = facturas.find(f => f.id === facturaId)
+    if (!factura) {
+      setError('No se encontró la factura')
+      return
+    }
+
+    const monto = parseFloat(form.monto)
+    const saldoPendiente = factura.saldoPendiente || 0
+
+    // Build confirmation message with details
+    let confirmMessage = `Resumen del Pago:\n\n`
+    confirmMessage += `Factura #${facturaId}\n`
+    confirmMessage += `Total: ${formatCurrency(factura.total)}\n`
+    confirmMessage += `Total Pagado: ${formatCurrency(factura.totalPagado || 0)}\n`
+    confirmMessage += `Saldo Pendiente: ${formatCurrency(saldoPendiente)}\n\n`
+    confirmMessage += `Monto a Registrar: ${formatCurrency(monto)}\n`
+    confirmMessage += `Método: ${form.metodo}\n\n`
+
+    // Add warning or confirmation based on payment type
+    if (monto < saldoPendiente) {
+      // Partial payment warning
+      const nuevoSaldo = saldoPendiente - monto
+      confirmMessage += `⚠️ PAGO PARCIAL\n\n`
+      confirmMessage += `Esto dejará la factura en estado PENDIENTE con saldo pendiente de ${formatCurrency(nuevoSaldo)}.\n\n`
+      confirmMessage += `¿Deseas continuar?`
+    } else if (Math.abs(monto - saldoPendiente) < 0.01) {
+      // Full payment
+      confirmMessage += `✓ PAGO TOTAL\n\n`
+      confirmMessage += `Esto marcará la factura como PAGADA y el pedido como PAGADO.\n\n`
+      confirmMessage += `¿Confirmas registrar el pago?`
+    } else {
+      // Should not happen due to UI validation, but just in case
+      confirmMessage += `¿Confirmas registrar el pago?`
+    }
+
+    // Show confirmation dialog
+    if (!window.confirm(confirmMessage)) {
+      return
+    }
+
     try {
       const response = await fetch('/api/pagos', {
         method: 'POST',
@@ -181,7 +257,7 @@ function FacturasPage() {
         },
         body: JSON.stringify({
           facturaId: facturaId,
-          monto: parseFloat(form.monto),
+          monto: monto,
           metodo: form.metodo
         })
       })
@@ -201,6 +277,15 @@ function FacturasPage() {
         const errorText = await response.text()
         setError('Error al registrar pago: ' + errorText)
         return
+      }
+
+      const updatedFactura = await response.json()
+
+      // Show success message based on payment result
+      if (updatedFactura.estado === 'PAGADA') {
+        setSuccessMessage(`Pago registrado exitosamente. Factura #${facturaId} marcada como PAGADA.`)
+      } else {
+        setSuccessMessage(`Pago parcial de ${formatCurrency(monto)} registrado exitosamente. Saldo pendiente: ${formatCurrency(updatedFactura.saldoPendiente || 0)}`)
       }
 
       setPagoForms(prev => ({ ...prev, [facturaId]: {} }))
@@ -256,13 +341,6 @@ function FacturasPage() {
     .filter(f => f.estado === 'PAGADA')
     .reduce((sum, f) => sum + f.total, 0)
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('es-MX', {
-      style: 'currency',
-      currency: 'MXN'
-    }).format(amount || 0)
-  }
-
   return (
     <div>
       <h1>Facturas</h1>
@@ -288,6 +366,7 @@ function FacturasPage() {
       </div>
 
       {error && <div className="alert alert-error">{error}</div>}
+      {successMessage && <div className="alert alert-success">{successMessage}</div>}
 
       <div className="card">
         <div className="card-header">
@@ -451,31 +530,55 @@ function FacturasPage() {
                     </button>
 
                     {factura.estado === 'PENDIENTE' && (
-                      <div style={{ display: 'flex', gap: '5px', alignItems: 'center', marginLeft: 'auto' }}>
-                        <label htmlFor={`monto-${factura.id}`} style={{ fontSize: '0.9em' }}>
-                          Monto:
-                        </label>
-                        <input
-                          id={`monto-${factura.id}`}
-                          type="number"
-                          step="0.01"
-                          value={pagoForm.monto || ''}
-                          onChange={(e) => handlePagoFormChange(factura.id, 'monto', e.target.value)}
-                          style={{ width: '100px' }}
-                        />
-                        <label htmlFor={`metodo-${factura.id}`} style={{ fontSize: '0.9em' }}>
-                          Método:
-                        </label>
-                        <select
-                          id={`metodo-${factura.id}`}
-                          value={pagoForm.metodo || ''}
-                          onChange={(e) => handlePagoFormChange(factura.id, 'metodo', e.target.value)}
-                        >
-                          <option value="">-- Seleccionar --</option>
-                          <option value="EFECTIVO">EFECTIVO</option>
-                          <option value="TARJETA">TARJETA</option>
-                        </select>
-                        <button onClick={() => registrarPago(factura.id)} className="btn-success btn-small">Registrar Pago</button>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginLeft: 'auto' }}>
+                        <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                          <label htmlFor={`monto-${factura.id}`} style={{ fontSize: '0.9em' }}>
+                            Monto:
+                          </label>
+                          <input
+                            id={`monto-${factura.id}`}
+                            type="number"
+                            step="0.01"
+                            value={pagoForm.monto || ''}
+                            onChange={(e) => handlePagoFormChange(factura.id, 'monto', e.target.value)}
+                            style={{ width: '100px' }}
+                          />
+                          <label htmlFor={`metodo-${factura.id}`} style={{ fontSize: '0.9em' }}>
+                            Método:
+                          </label>
+                          <select
+                            id={`metodo-${factura.id}`}
+                            value={pagoForm.metodo || ''}
+                            onChange={(e) => handlePagoFormChange(factura.id, 'metodo', e.target.value)}
+                          >
+                            <option value="">-- Seleccionar --</option>
+                            <option value="EFECTIVO">EFECTIVO</option>
+                            <option value="TARJETA">TARJETA</option>
+                          </select>
+                          <button
+                            onClick={() => registrarPago(factura.id)}
+                            className="btn-success btn-small"
+                            disabled={
+                              !pagoForm.monto ||
+                              parseFloat(pagoForm.monto) <= 0 ||
+                              parseFloat(pagoForm.monto) > (factura.saldoPendiente || 0) ||
+                              !pagoForm.metodo
+                            }
+                          >
+                            Registrar Pago
+                          </button>
+                        </div>
+                        {/* Warning for invalid amounts */}
+                        {pagoForm.monto && parseFloat(pagoForm.monto) > (factura.saldoPendiente || 0) && (
+                          <div style={{ fontSize: '0.85em', color: '#dc2626', fontWeight: 'bold' }}>
+                            ⚠️ El monto excede el saldo pendiente. No se permiten sobrepagos.
+                          </div>
+                        )}
+                        {pagoForm.monto && parseFloat(pagoForm.monto) <= 0 && (
+                          <div style={{ fontSize: '0.85em', color: '#dc2626', fontWeight: 'bold' }}>
+                            ⚠️ El monto debe ser mayor a 0.
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
