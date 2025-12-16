@@ -163,6 +163,15 @@ public class FacturaService {
                 .collect(Collectors.toList());
         dto.setPagos(pagos);
 
+        // Calcular totalPagado y saldoPendiente
+        double totalPagado = factura.getPagos().stream()
+                .mapToDouble(Pago::getMonto)
+                .sum();
+        double saldoPendiente = Math.max(factura.getTotal() - totalPagado, 0.0);
+
+        dto.setTotalPagado(totalPagado);
+        dto.setSaldoPendiente(saldoPendiente);
+
         return dto;
     }
 

@@ -25,6 +25,26 @@ function FacturasPage() {
     }
   }, [isAuthenticated])
 
+  // Pre-rellenar monto de pago con saldoPendiente
+  useEffect(() => {
+    const newPagoForms = {}
+    facturas.forEach(factura => {
+      if (factura.estado === 'PENDIENTE' && factura.saldoPendiente > 0) {
+        // Solo pre-rellenar si no hay valor ya establecido
+        if (!pagoForms[factura.id]?.monto) {
+          newPagoForms[factura.id] = {
+            monto: factura.saldoPendiente.toFixed(2),
+            metodo: pagoForms[factura.id]?.metodo || ''
+          }
+        }
+      }
+    })
+
+    if (Object.keys(newPagoForms).length > 0) {
+      setPagoForms(prev => ({ ...prev, ...newPagoForms }))
+    }
+  }, [facturas])
+
   const fetchFacturas = async () => {
     setLoading(true)
     setError('')
@@ -409,6 +429,16 @@ function FacturasPage() {
                     <div>
                       <span style={{ fontSize: '0.85em', color: '#666' }}>Total:</span>
                       <div style={{ fontSize: '1.2em', color: '#059669' }}><strong>{formatCurrency(factura.total)}</strong></div>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '0.85em', color: '#666' }}>Total Pagado:</span>
+                      <div style={{ color: '#2563eb' }}><strong>{formatCurrency(factura.totalPagado || 0)}</strong></div>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '0.85em', color: '#666' }}>Saldo Pendiente:</span>
+                      <div style={{ fontSize: '1.2em', color: factura.saldoPendiente > 0 ? '#dc2626' : '#059669' }}>
+                        <strong>{formatCurrency(factura.saldoPendiente || 0)}</strong>
+                      </div>
                     </div>
                   </div>
 

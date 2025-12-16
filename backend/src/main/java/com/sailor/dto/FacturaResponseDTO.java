@@ -13,6 +13,8 @@ public class FacturaResponseDTO {
     private double total;
     private String estado;
     private List<PagoResponseDTO> pagos;
+    private double totalPagado;
+    private double saldoPendiente;
 
     public FacturaResponseDTO() {
     }
@@ -87,5 +89,21 @@ public class FacturaResponseDTO {
 
     public void setPagos(List<PagoResponseDTO> pagos) {
         this.pagos = pagos;
+    }
+
+    public double getTotalPagado() {
+        return totalPagado;
+    }
+
+    public void setTotalPagado(double totalPagado) {
+        this.totalPagado = totalPagado;
+    }
+
+    public double getSaldoPendiente() {
+        return saldoPendiente;
+    }
+
+    public void setSaldoPendiente(double saldoPendiente) {
+        this.saldoPendiente = saldoPendiente;
     }
 }
