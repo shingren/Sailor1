@@ -16,6 +16,7 @@ import com.sailor.repository.FacturaRepository;
 import com.sailor.repository.PagoRepository;
 import com.sailor.repository.PedidoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -76,8 +77,14 @@ public class FacturaService {
         factura.setDescuento(descuento);
         factura.setTotal(total);
 
-        Factura savedFactura = facturaRepository.save(factura);
-        return mapToResponseDTO(savedFactura);
+        try {
+            Factura savedFactura = facturaRepository.save(factura);
+            return mapToResponseDTO(savedFactura);
+        } catch (DataIntegrityViolationException e) {
+            // Race condition: otro thread ya creó la factura entre la validación y el save
+            // Convertir a excepción de negocio para respuesta HTTP 409 consistente
+            throw new FacturaAlreadyExistsException("Ya existe una factura para el pedido #" + pedidoId);
+        }
     }
 
     public List<FacturaResponseDTO> listarFacturas() {
