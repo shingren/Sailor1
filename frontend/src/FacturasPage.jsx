@@ -482,6 +482,11 @@ function FacturasPage() {
                       <strong style={{ fontSize: '1.1rem' }}>Factura #{factura.id}</strong>
                       <span style={{ marginLeft: '15px' }}>Pedido: <strong>#{factura.pedidoId}</strong></span>
                       <span style={{ marginLeft: '15px' }}>{new Date(factura.fechaHora).toLocaleString()}</span>
+                      {factura.creadaPor && (
+                        <span style={{ marginLeft: '15px', fontSize: '0.85em', color: '#666' }}>
+                          Generada por: <strong>{factura.creadaPor}</strong>
+                        </span>
+                      )}
                     </div>
                     <span className={`badge ${
                       factura.estado === 'PENDIENTE' ? 'badge-yellow' :
@@ -638,6 +643,11 @@ function FacturasPage() {
                         {factura.pagos.map((pago, idx) => (
                           <li key={idx}>
                             {formatCurrency(pago.monto)} - {pago.metodo} ({new Date(pago.fechaHora).toLocaleString()})
+                            {pago.registradoPor && (
+                              <span style={{ marginLeft: '8px', fontSize: '0.9em', color: '#666' }}>
+                                - Registrado por: <strong>{pago.registradoPor}</strong>
+                              </span>
+                            )}
                           </li>
                         ))}
                       </ul>

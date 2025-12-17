@@ -36,6 +36,9 @@ public class FacturaService {
     @Autowired
     private PedidoRepository pedidoRepository;
 
+    @Autowired
+    private UsuarioService usuarioService;
+
     @Transactional
     public FacturaResponseDTO crearFactura(Long pedidoId) {
         Pedido pedido = pedidoRepository.findById(pedidoId)
@@ -77,6 +80,9 @@ public class FacturaService {
         factura.setImpuestos(impuestos);
         factura.setDescuento(descuento);
         factura.setTotal(total);
+
+        // Set usuario responsable de crear la factura (trazabilidad)
+        factura.setCreadaPorUsuario(usuarioService.getCurrentUsuario());
 
         try {
             Factura savedFactura = facturaRepository.save(factura);
@@ -134,6 +140,9 @@ public class FacturaService {
         pago.setMonto(monto);
         pago.setMetodo(metodo);
 
+        // Set usuario responsable de registrar el pago (trazabilidad)
+        pago.setRegistradoPorUsuario(usuarioService.getCurrentUsuario());
+
         Pago savedPago = pagoRepository.save(pago);
         factura.getPagos().add(savedPago);
 
@@ -165,6 +174,12 @@ public class FacturaService {
         dto.setId(factura.getId());
         dto.setPedidoId(factura.getPedido().getId());
         dto.setFechaHora(factura.getFechaHora());
+
+        // Trazabilidad: incluir email del usuario que creó la factura (si existe)
+        if (factura.getCreadaPorUsuario() != null) {
+            dto.setCreadaPor(factura.getCreadaPorUsuario().getEmail());
+        }
+
         dto.setSubtotal(factura.getSubtotal());
         dto.setImpuestos(factura.getImpuestos());
         dto.setDescuento(factura.getDescuento());
@@ -194,6 +209,12 @@ public class FacturaService {
         dto.setMonto(pago.getMonto());
         dto.setMetodo(pago.getMetodo());
         dto.setFechaHora(pago.getFechaHora());
+
+        // Trazabilidad: incluir email del usuario que registró el pago (si existe)
+        if (pago.getRegistradoPorUsuario() != null) {
+            dto.setRegistradoPor(pago.getRegistradoPorUsuario().getEmail());
+        }
+
         return dto;
     }
 }

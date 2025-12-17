@@ -7,6 +7,7 @@ public class PagoResponseDTO {
     private double monto;
     private String metodo;
     private LocalDateTime fechaHora;
+    private String registradoPor;  // Email del usuario que registró el pago
 
     public PagoResponseDTO() {
     }
@@ -41,5 +42,13 @@ public class PagoResponseDTO {
 
     public void setFechaHora(LocalDateTime fechaHora) {
         this.fechaHora = fechaHora;
+    }
+
+    public String getRegistradoPor() {
+        return registradoPor;
+    }
+
+    public void setRegistradoPor(String registradoPor) {
+        this.registradoPor = registradoPor;
     }
 }

@@ -6,6 +6,8 @@ import com.sailor.dto.UsuarioResponseDTO;
 import com.sailor.entity.Usuario;
 import com.sailor.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -20,6 +22,26 @@ public class UsuarioService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    /**
+     * Obtiene el usuario autenticado actual desde el SecurityContext.
+     * Usado para trazabilidad en creación de facturas y registro de pagos.
+     *
+     * @return Usuario autenticado
+     * @throws RuntimeException si no hay usuario autenticado o no se encuentra en DB
+     */
+    public Usuario getCurrentUsuario() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new RuntimeException("No hay usuario autenticado en el contexto");
+        }
+
+        String email = authentication.getName(); // email from JWT
+
+        return usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Usuario autenticado no encontrado en DB: " + email));
+    }
 
     public List<UsuarioResponseDTO> getAllUsuarios() {
         return usuarioRepository.findAll().stream()

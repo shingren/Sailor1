@@ -7,6 +7,7 @@ public class FacturaResponseDTO {
     private Long id;
     private Long pedidoId;
     private LocalDateTime fechaHora;
+    private String creadaPor;  // Email del usuario que creó la factura
     private double subtotal;
     private double impuestos;
     private double descuento;
@@ -41,6 +42,14 @@ public class FacturaResponseDTO {
 
     public void setFechaHora(LocalDateTime fechaHora) {
         this.fechaHora = fechaHora;
+    }
+
+    public String getCreadaPor() {
+        return creadaPor;
+    }
+
+    public void setCreadaPor(String creadaPor) {
+        this.creadaPor = creadaPor;
     }
 
     public double getSubtotal() {

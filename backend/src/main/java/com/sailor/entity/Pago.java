@@ -24,6 +24,10 @@ public class Pago {
     @Column(nullable = false)
     private LocalDateTime fechaHora;
 
+    @ManyToOne
+    @JoinColumn(name = "registrado_por_usuario_id", nullable = false)
+    private Usuario registradoPorUsuario;
+
     public Pago() {
         this.fechaHora = LocalDateTime.now();
     }
@@ -66,5 +70,13 @@ public class Pago {
 
     public void setFechaHora(LocalDateTime fechaHora) {
         this.fechaHora = fechaHora;
+    }
+
+    public Usuario getRegistradoPorUsuario() {
+        return registradoPorUsuario;
+    }
+
+    public void setRegistradoPorUsuario(Usuario registradoPorUsuario) {
+        this.registradoPorUsuario = registradoPorUsuario;
     }
 }

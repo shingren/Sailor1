@@ -23,6 +23,10 @@ public class Factura {
     @Column(name = "fecha_hora_pago")
     private LocalDateTime fechaHoraPago;
 
+    @ManyToOne
+    @JoinColumn(name = "creada_por_usuario_id", nullable = false)
+    private Usuario creadaPorUsuario;
+
     @Column(nullable = false)
     private double subtotal;
 
@@ -76,6 +80,14 @@ public class Factura {
 
     public void setFechaHoraPago(LocalDateTime fechaHoraPago) {
         this.fechaHoraPago = fechaHoraPago;
+    }
+
+    public Usuario getCreadaPorUsuario() {
+        return creadaPorUsuario;
+    }
+
+    public void setCreadaPorUsuario(Usuario creadaPorUsuario) {
+        this.creadaPorUsuario = creadaPorUsuario;
     }
 
     public double getSubtotal() {
