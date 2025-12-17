@@ -82,7 +82,13 @@ public class FacturaService {
         factura.setTotal(total);
 
         // Set usuario responsable de crear la factura (trazabilidad)
-        factura.setCreadaPorUsuario(usuarioService.getCurrentUsuario());
+        try {
+            factura.setCreadaPorUsuario(usuarioService.getCurrentUsuario());
+        } catch (Exception e) {
+            // Si no se puede obtener el usuario (ej. problema con SecurityContext),
+            // continuar sin trazabilidad en lugar de fallar toda la operación
+            System.err.println("Warning: No se pudo obtener usuario actual para trazabilidad: " + e.getMessage());
+        }
 
         try {
             Factura savedFactura = facturaRepository.save(factura);
@@ -141,7 +147,13 @@ public class FacturaService {
         pago.setMetodo(metodo);
 
         // Set usuario responsable de registrar el pago (trazabilidad)
-        pago.setRegistradoPorUsuario(usuarioService.getCurrentUsuario());
+        try {
+            pago.setRegistradoPorUsuario(usuarioService.getCurrentUsuario());
+        } catch (Exception e) {
+            // Si no se puede obtener el usuario (ej. problema con SecurityContext),
+            // continuar sin trazabilidad en lugar de fallar toda la operación
+            System.err.println("Warning: No se pudo obtener usuario actual para trazabilidad: " + e.getMessage());
+        }
 
         Pago savedPago = pagoRepository.save(pago);
         factura.getPagos().add(savedPago);

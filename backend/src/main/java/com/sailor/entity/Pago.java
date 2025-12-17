@@ -25,7 +25,7 @@ public class Pago {
     private LocalDateTime fechaHora;
 
     @ManyToOne
-    @JoinColumn(name = "registrado_por_usuario_id", nullable = false)
+    @JoinColumn(name = "registrado_por_usuario_id")
     private Usuario registradoPorUsuario;
 
     public Pago() {
