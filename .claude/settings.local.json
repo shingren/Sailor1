@@ -26,7 +26,9 @@
       "Bash(cloudflared tunnel cleanup:*)",
       "Bash(cloudflared tunnel route ip show:*)",
       "Bash(cloudflared tunnel --help:*)",
-      "Bash(cloudflared tunnel list:*)"
+      "Bash(cloudflared tunnel list:*)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiJ9.eyJyb2wiOiJBRE1JTiIsInN1YiI6ImFkbWluQHNhaWxvci5jb20iLCJpYXQiOjE3NjYyNTcwOTMsImV4cCI6MTc2NjI1Nzk5M30.Eq9fG26_2I8Mfc5hMYQeKlFwt3XLmTPGFi-HtstbqSI\")",
+      "Bash(docker restart:*)"
     ],
     "deny": [],
     "ask": []

@@ -6,6 +6,7 @@ import HomePage from './HomePage'
 import MesasPage from './MesasPage'
 import ProductosPage from './ProductosPage'
 import PedidosPage from './PedidosPage'
+import MenuGridView from './MenuGridView'
 import CocinaPage from './CocinaPage'
 import FacturasPage from './FacturasPage'
 import InventarioPage from './InventarioPage'
@@ -109,6 +110,15 @@ function App() {
         <AuthenticatedLayout>
           <ProtectedRoute allowedRoles={['ADMIN', 'MESERO']}>
             <PedidosPage />
+          </ProtectedRoute>
+        </AuthenticatedLayout>
+      } />
+
+      {/* MENU GRID VIEW - ADMIN, MESERO */}
+      <Route path="/menu" element={
+        <AuthenticatedLayout>
+          <ProtectedRoute allowedRoles={['ADMIN', 'MESERO']}>
+            <MenuGridView />
           </ProtectedRoute>
         </AuthenticatedLayout>
       } />
