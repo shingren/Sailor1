@@ -6,6 +6,9 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
+    allowedHosts: [
+      'sailor.aarch.shop'
+    ],
     proxy: {
       '/api': {
         target: 'http://localhost:8080',

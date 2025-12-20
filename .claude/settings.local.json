@@ -15,7 +15,18 @@
       "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiJ9.eyJyb2wiOiJBRE1JTiIsInN1YiI6ImFkbWluQHNhaWxvci5jb20iLCJpYXQiOjE3NjU3NjMyOTYsImV4cCI6MTc2NTc2NDE5Nn0.vLkKfVWId85_mdHZy0QXqbK_1G4LIAkz6iRuTIHjmhw\")",
       "Bash(bash:*)",
       "Bash(docker ps:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(Get-Process -Id 59728)",
+      "Bash(Select-Object -ExpandProperty StartTime)",
+      "Bash(cloudflared tunnel info:*)",
+      "Bash(cloudflared tunnel route dns:*)",
+      "Bash(nslookup:*)",
+      "Bash(cloudflared tunnel ingress validate:*)",
+      "Bash(cloudflared tunnel ingress rule:*)",
+      "Bash(cloudflared tunnel cleanup:*)",
+      "Bash(cloudflared tunnel route ip show:*)",
+      "Bash(cloudflared tunnel --help:*)",
+      "Bash(cloudflared tunnel list:*)"
     ],
     "deny": [],
     "ask": []
