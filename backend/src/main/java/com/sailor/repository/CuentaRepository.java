@@ -20,9 +20,9 @@ public interface CuentaRepository extends JpaRepository<Cuenta, Long> {
     List<Cuenta> findByEstado(CuentaEstado estado);
 
     // Custom query to find cuentas ready to invoice
-    // A cuenta is ready if: has at least 1 ENTREGADO pedido, all pedidos are ENTREGADO (or PAGADO), and no factura exists
+    // A cuenta is ready if: has at least 1 LISTO pedido, all pedidos are LISTO (or PAGADO), and no factura exists
     @Query("SELECT c FROM Cuenta c WHERE c.estado = 'ABIERTA' AND c.factura IS NULL " +
-           "AND EXISTS (SELECT p FROM Pedido p WHERE p.cuenta = c AND p.estado = 'ENTREGADO') " +
-           "AND NOT EXISTS (SELECT p FROM Pedido p WHERE p.cuenta = c AND p.estado NOT IN ('ENTREGADO', 'PAGADO'))")
+           "AND EXISTS (SELECT p FROM Pedido p WHERE p.cuenta = c AND p.estado = 'LISTO') " +
+           "AND NOT EXISTS (SELECT p FROM Pedido p WHERE p.cuenta = c AND p.estado NOT IN ('LISTO', 'PAGADO'))")
     List<Cuenta> findCuentasListasParaFacturar();
 }

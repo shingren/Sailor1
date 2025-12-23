@@ -111,14 +111,14 @@ public class PedidoService {
 
     public List<PedidoResponseDTO> getActivePedidos() {
         return pedidoRepository.findAll().stream()
-                .filter(pedido -> !pedido.getEstado().equals("ENTREGADO") && !pedido.getEstado().equals("PAGADO"))
+                .filter(pedido -> !pedido.getEstado().equals("LISTO") && !pedido.getEstado().equals("PAGADO"))
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
     }
 
     public List<PedidoResponseDTO> getPedidosListosParaFacturar() {
         return pedidoRepository.findAll().stream()
-                .filter(pedido -> pedido.getEstado().equals("ENTREGADO"))
+                .filter(pedido -> pedido.getEstado().equals("LISTO"))
                 .filter(pedido -> pedido.getFactura() == null)
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
@@ -137,7 +137,7 @@ public class PedidoService {
             throw new RuntimeException("Invalid transition from " + pedido.getEstado() + " to " + nuevoEstado);
         }
 
-        if (nuevoEstado.equals("ENTREGADO")) {
+        if (nuevoEstado.equals("LISTO")) {
             deductInventory(pedido);
         }
 

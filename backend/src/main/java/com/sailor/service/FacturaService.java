@@ -65,10 +65,10 @@ public class FacturaService {
         Pedido pedido = pedidoRepository.findById(request.getPedidoId())
                 .orElseThrow(() -> new RuntimeException("Pedido not found with id: " + request.getPedidoId()));
 
-        // Validate that pedido is in ENTREGADO state (business rule)
-        if (!pedido.getEstado().equals("ENTREGADO")) {
+        // Validate that pedido is in LISTO state (business rule)
+        if (!pedido.getEstado().equals("LISTO")) {
             throw new InvalidPedidoEstadoException(
-                "Solo se puede facturar pedidos en estado ENTREGADO. Estado actual: " + pedido.getEstado()
+                "Solo se puede facturar pedidos en estado LISTO. Estado actual: " + pedido.getEstado()
             );
         }
 
@@ -193,28 +193,27 @@ public class FacturaService {
         Cuenta cuenta = cuentaRepository.findById(cuentaId)
                 .orElseThrow(() -> new RuntimeException("Cuenta not found with id: " + cuentaId));
 
-        // Validate that cuenta has at least one ENTREGADO pedido
-        long entregadosCount = cuenta.getPedidos().stream()
-                .filter(p -> "ENTREGADO".equals(p.getEstado()))
+        // Validate that cuenta has at least one LISTO pedido
+        long listosCount = cuenta.getPedidos().stream()
+                .filter(p -> "LISTO".equals(p.getEstado()))
                 .count();
 
-        if (entregadosCount == 0) {
+        if (listosCount == 0) {
             throw new InvalidPedidoEstadoException(
-                "La cuenta no tiene pedidos ENTREGADOS para facturar"
+                "La cuenta no tiene pedidos LISTOS para facturar"
             );
         }
 
-        // Validate that ALL pedidos are ENTREGADO (or PAGADO) - none pending
+        // Validate that ALL pedidos are LISTO (or PAGADO) - none pending
         long pendientesCount = cuenta.getPedidos().stream()
                 .filter(p -> "PENDIENTE".equals(p.getEstado()) ||
-                             "PREPARACION".equals(p.getEstado()) ||
-                             "LISTO".equals(p.getEstado()))
+                             "PREPARACION".equals(p.getEstado()))
                 .count();
 
         if (pendientesCount > 0) {
             throw new InvalidPedidoEstadoException(
                 "La cuenta tiene " + pendientesCount + " pedido(s) pendiente(s). " +
-                "Todos los pedidos deben estar ENTREGADOS para facturar la cuenta"
+                "Todos los pedidos deben estar LISTOS para facturar la cuenta"
             );
         }
 
@@ -223,9 +222,9 @@ public class FacturaService {
             throw new FacturaAlreadyExistsException("Ya existe una factura para la cuenta #" + cuentaId);
         }
 
-        // Calculate subtotal from ALL ENTREGADO pedidos in cuenta
+        // Calculate subtotal from ALL LISTO pedidos in cuenta
         double subtotal = cuenta.getPedidos().stream()
-                .filter(p -> "ENTREGADO".equals(p.getEstado()))
+                .filter(p -> "LISTO".equals(p.getEstado()))
                 .flatMap(pedido -> pedido.getItems().stream())
                 .mapToDouble(item -> {
                     // Base item price

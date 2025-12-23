@@ -45,6 +45,24 @@ public class PedidoController {
         return pedidoService.cambiarEstado(id, request.getEstado());
     }
 
+    /**
+     * Endpoint específico para que COCINA inicie la preparación (PENDIENTE -> PREPARACION)
+     * Solo COCINA y ADMIN pueden acceder (definido en SecurityConfig)
+     */
+    @PostMapping("/{id}/iniciar-preparacion")
+    public PedidoResponseDTO iniciarPreparacion(@PathVariable Long id) {
+        return pedidoService.cambiarEstado(id, "PREPARACION");
+    }
+
+    /**
+     * Endpoint específico para que COCINA marque como listo (PREPARACION -> LISTO)
+     * Solo COCINA y ADMIN pueden acceder (definido en SecurityConfig)
+     */
+    @PostMapping("/{id}/marcar-listo")
+    public PedidoResponseDTO marcarListo(@PathVariable Long id) {
+        return pedidoService.cambiarEstado(id, "LISTO");
+    }
+
     static class EstadoRequest {
         private String estado;
 

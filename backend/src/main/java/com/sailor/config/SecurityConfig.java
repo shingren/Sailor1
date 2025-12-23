@@ -87,7 +87,9 @@ public class SecurityConfig {
 
                 // PEDIDOS - Special handling for COCINA role
                 .requestMatchers("/pedidos/activos").hasAnyRole("ADMIN", "MESERO", "COCINA")
-                .requestMatchers("/pedidos/*/estado").hasAnyRole("ADMIN", "MESERO", "COCINA")
+                .requestMatchers("/pedidos/*/iniciar-preparacion").hasAnyRole("ADMIN", "COCINA")
+                .requestMatchers("/pedidos/*/marcar-listo").hasAnyRole("ADMIN", "COCINA")
+                .requestMatchers("/pedidos/*/estado").hasRole("ADMIN")  // Generic endpoint restricted to ADMIN only
                 .requestMatchers("/pedidos/**").hasAnyRole("ADMIN", "MESERO")
 
                 // FACTURAS - ADMIN, CAJA
