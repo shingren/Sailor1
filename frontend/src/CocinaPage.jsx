@@ -5,28 +5,32 @@ import { Link } from 'react-router-dom'
 function CocinaPage() {
   const { isAuthenticated, getAuthHeader } = useAuth()
 
-  const [pedidos, setPedidos] = useState([])
+  const [selectedStation, setSelectedStation] = useState('HOT')
+  const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
     if (!isAuthenticated) return
 
-    fetchActivePedidos()
+    fetchItemsByStation(selectedStation)
 
     const interval = setInterval(() => {
-      fetchActivePedidos()
+      fetchItemsByStation(selectedStation)
     }, 10000)
 
     return () => clearInterval(interval)
-  }, [isAuthenticated])
+  }, [isAuthenticated, selectedStation])
 
-  const fetchActivePedidos = async () => {
+  const fetchItemsByStation = async (station) => {
     setLoading(true)
     setError('')
+
     try {
-      const response = await fetch('/api/pedidos/activos', {
-        headers: { 'Authorization': getAuthHeader() }
+      const response = await fetch(`/api/cocina/items?estacion=${station}`, {
+        headers: {
+          'Authorization': getAuthHeader()
+        }
       })
 
       if (response.status === 401) {
@@ -36,30 +40,29 @@ function CocinaPage() {
       }
 
       if (!response.ok) {
-        setError('Error al cargar pedidos activos')
+        setError('Error al cargar items de cocina')
         setLoading(false)
         return
       }
 
       const data = await response.json()
-      setPedidos(data)
+      setItems(data)
     } catch (err) {
-      setError('Error fetching pedidos: ' + err.message)
+      setError('Error al cargar items: ' + err.message)
     } finally {
       setLoading(false)
     }
   }
 
-  const cambiarEstado = async (pedidoId, nuevoEstado) => {
+  const iniciarItem = async (itemId) => {
     setError('')
+
     try {
-      const response = await fetch(`/api/pedidos/${pedidoId}/estado`, {
-        method: 'PATCH',
+      const response = await fetch(`/api/cocina/items/${itemId}/iniciar`, {
+        method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': getAuthHeader()
-        },
-        body: JSON.stringify({ estado: nuevoEstado })
+        }
       })
 
       if (response.status === 401) {
@@ -68,47 +71,84 @@ function CocinaPage() {
       }
 
       if (!response.ok) {
-        try {
-          const errorData = await response.json()
-          setError(`Error al cambiar estado: ${errorData.error || 'Error desconocido'}`)
-        } catch {
-          const errorText = await response.text()
-          setError(`Error al cambiar estado: ${errorText}`)
-        }
+        setError('Error al iniciar preparación')
         return
       }
 
-      fetchActivePedidos()
+      fetchItemsByStation(selectedStation)
     } catch (err) {
-      setError('Error al cambiar estado: ' + err.message)
+      setError('Error al iniciar preparación: ' + err.message)
     }
   }
 
-  const getEstadoButton = (pedido) => {
-    switch (pedido.estado) {
-      case 'PENDIENTE':
-        return (
-          <button onClick={() => cambiarEstado(pedido.id, 'PREPARACION')} className="btn-primary btn-small">
-            Pasar a Preparación
-          </button>
-        )
-      case 'PREPARACION':
-        return (
-          <button onClick={() => cambiarEstado(pedido.id, 'LISTO')} className="btn-success btn-small">
-            Marcar como Listo
-          </button>
-        )
-      case 'LISTO':
-        return (
-          <button onClick={() => cambiarEstado(pedido.id, 'ENTREGADO')} className="btn-secondary btn-small">
-            Marcar como Entregado
-          </button>
-        )
-      case 'ENTREGADO':
-        return <span>-</span>
-      default:
-        return <span>-</span>
+  const marcarListo = async (itemId) => {
+    setError('')
+
+    try {
+      const response = await fetch(`/api/cocina/items/${itemId}/listo`, {
+        method: 'POST',
+        headers: {
+          'Authorization': getAuthHeader()
+        }
+      })
+
+      if (response.status === 401) {
+        setError('No autorizado - por favor inicia sesión nuevamente')
+        return
+      }
+
+      if (!response.ok) {
+        setError('Error al marcar item como listo')
+        return
+      }
+
+      fetchItemsByStation(selectedStation)
+    } catch (err) {
+      setError('Error al marcar listo: ' + err.message)
     }
+  }
+
+  const getEstadoBadgeClass = (estado) => {
+    switch (estado) {
+      case 'PENDIENTE':
+        return 'badge-yellow'
+      case 'PREPARACION':
+        return 'badge-blue'
+      case 'LISTO':
+        return 'badge-green'
+      default:
+        return 'badge-gray'
+    }
+  }
+
+  const renderActionButton = (item) => {
+    if (item.estado === 'PENDIENTE') {
+      return (
+        <button
+          onClick={() => iniciarItem(item.itemId)}
+          className="btn-primary btn-small"
+        >
+          Iniciar
+        </button>
+      )
+    }
+
+    if (item.estado === 'PREPARACION') {
+      return (
+        <button
+          onClick={() => marcarListo(item.itemId)}
+          className="btn-success btn-small"
+        >
+          Listo
+        </button>
+      )
+    }
+
+    if (item.estado === 'LISTO') {
+      return <span style={{ color: '#059669', fontWeight: 'bold' }}>Esperando entrega</span>
+    }
+
+    return <span>-</span>
   }
 
   if (!isAuthenticated) {
@@ -125,68 +165,90 @@ function CocinaPage() {
 
   return (
     <div>
-      <h1>Cocina - Panel de Operaciones</h1>
-      <p className="text-muted" style={{ fontSize: '0.9rem' }}>Actualización automática cada 10 segundos</p>
+      <h1>Cocina - Panel por Estación</h1>
+      <p className="text-muted" style={{ fontSize: '0.9rem' }}>
+        Actualización automática cada 10 segundos
+      </p>
 
       {error && <div className="alert alert-error">{error}</div>}
 
       <div className="card">
         <div className="card-header">
-          <h2>Pedidos activos</h2>
+          <h2>Seleccionar estación</h2>
         </div>
-        {loading && pedidos.length === 0 ? (
+
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          {['HOT', 'COLD', 'PASTRY'].map((station) => (
+            <button
+              key={station}
+              type="button"
+              onClick={() => setSelectedStation(station)}
+              className={selectedStation === station ? 'btn-primary' : 'btn-secondary'}
+            >
+              {station}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-header">
+          <h2>Items de {selectedStation}</h2>
+        </div>
+
+        {loading ? (
           <div className="loading">Cargando</div>
-        ) : pedidos.length === 0 ? (
-          <p className="text-muted">No hay pedidos activos</p>
+        ) : items.length === 0 ? (
+          <p className="text-muted">No hay items para esta estación</p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            {pedidos.map(pedido => (
-              <div key={pedido.id} style={{ border: '2px solid #e5e7eb', borderRadius: '8px', padding: '15px', backgroundColor: '#f9fafb' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', borderBottom: '1px solid #e5e7eb', paddingBottom: '10px' }}>
+            {items.map((item) => (
+              <div
+                key={item.itemId}
+                style={{
+                  border: '2px solid #e5e7eb',
+                  borderRadius: '8px',
+                  padding: '15px',
+                  backgroundColor: '#f9fafb'
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '10px',
+                    borderBottom: '1px solid #e5e7eb',
+                    paddingBottom: '10px'
+                  }}
+                >
                   <div>
-                    <strong style={{ fontSize: '1.1rem' }}>Pedido #{pedido.id}</strong>
-                    <span style={{ marginLeft: '15px' }}>Mesa: <strong>{pedido.mesaCodigo}</strong></span>
-                    <span style={{ marginLeft: '15px' }}>{new Date(pedido.fechaHora).toLocaleString()}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span className={`badge ${
-                      pedido.estado === 'PENDIENTE' ? 'badge-yellow' :
-                      pedido.estado === 'PREPARACION' ? 'badge-blue' :
-                      pedido.estado === 'LISTO' ? 'badge-green' :
-                      'badge-gray'
-                    }`}>
-                      {pedido.estado}
+                    <strong style={{ fontSize: '1.1rem' }}>{item.productoNombre}</strong>
+                    <span style={{ marginLeft: '15px' }}>
+                      Mesa: <strong>{item.mesaCodigo}</strong>
                     </span>
-                    {getEstadoButton(pedido)}
+                    <span style={{ marginLeft: '15px' }}>
+                      Cantidad: <strong>{item.cantidad}</strong>
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span className={`badge ${getEstadoBadgeClass(item.estado)}`}>
+                      {item.estado}
+                    </span>
+                    {renderActionButton(item)}
                   </div>
                 </div>
 
-                <div style={{ marginTop: '10px' }}>
-                  <strong>Detalles del pedido:</strong>
-                  <ul style={{ marginTop: '8px', marginLeft: '20px' }}>
-                    {pedido.items.map((item, idx) => (
-                      <li key={idx} style={{ marginBottom: '8px' }}>
-                        <div>
-                          <strong>{item.cantidad}x</strong> {item.productoNombre || `Producto ID: ${item.productoId}`}
-                        </div>
-                        {item.extras && item.extras.length > 0 && (
-                          <ul style={{ marginTop: '4px', marginLeft: '20px', listStyleType: 'circle', color: '#666' }}>
-                            {item.extras.map((extra, extraIdx) => (
-                              <li key={extraIdx} style={{ fontSize: '0.9em', marginBottom: '2px' }}>
-                                + {extra.nombre} x{extra.cantidad}
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-
-                  {pedido.observaciones && (
-                    <div style={{ marginTop: '10px', padding: '8px', backgroundColor: '#fff3cd', borderLeft: '3px solid #ffc107', borderRadius: '4px' }}>
-                      <strong>Observaciones:</strong> {pedido.observaciones}
-                    </div>
-                  )}
+                <div style={{ fontSize: '0.95rem', color: '#4b5563' }}>
+                  <div><strong>Pedido ID:</strong> {item.pedidoId}</div>
+                  <div><strong>Estación:</strong> {item.estacion}</div>
+                  <div>
+                    <strong>Observaciones:</strong>{' '}
+                    {item.observaciones && item.observaciones.trim() !== ''
+                      ? item.observaciones
+                      : '-'}
+                  </div>
                 </div>
               </div>
             ))}
@@ -195,15 +257,13 @@ function CocinaPage() {
       </div>
 
       <div className="card">
-        <h3>Flujo de Estados</h3>
+        <h3>Flujo de estados</h3>
         <p>
           <span className="badge badge-yellow">PENDIENTE</span>
           {' → '}
-          <span className="badge badge-blue">PREPARACIÓN</span>
+          <span className="badge badge-blue">PREPARACION</span>
           {' → '}
           <span className="badge badge-green">LISTO</span>
-          {' → '}
-          <span className="badge badge-gray">ENTREGADO</span>
         </p>
       </div>
     </div>

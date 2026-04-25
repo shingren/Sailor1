@@ -1,19 +1,28 @@
 package com.sailor.service;
 
+import com.sailor.dto.CocinaItemResponseDTO;
 import com.sailor.dto.PedidoCreateRequestDTO;
+import com.sailor.dto.PedidoItemExtraRequestDTO;
 import com.sailor.dto.PedidoItemRequestDTO;
 import com.sailor.dto.PedidoItemResponseDTO;
 import com.sailor.dto.PedidoResponseDTO;
-import com.sailor.dto.PedidoItemExtraRequestDTO;
-import com.sailor.dto.PedidoItemExtraResponseDTO;
-import com.sailor.entity.*;
-import com.sailor.repository.*;
+import com.sailor.entity.Cuenta;
+import com.sailor.entity.Mesa;
+import com.sailor.entity.Pedido;
+import com.sailor.entity.PedidoItem;
+import com.sailor.entity.PedidoItemExtra;
+import com.sailor.entity.Producto;
+import com.sailor.entity.RecetaExtra;
+import com.sailor.repository.MesaRepository;
+import com.sailor.repository.PedidoItemRepository;
+import com.sailor.repository.PedidoRepository;
+import com.sailor.repository.ProductoRepository;
+import com.sailor.repository.RecetaExtraRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -23,19 +32,13 @@ public class PedidoService {
     private PedidoRepository pedidoRepository;
 
     @Autowired
+    private PedidoItemRepository pedidoItemRepository;
+
+    @Autowired
     private MesaRepository mesaRepository;
 
     @Autowired
     private ProductoRepository productoRepository;
-
-    @Autowired
-    private RecetaRepository recetaRepository;
-
-    @Autowired
-    private InsumoRepository insumoRepository;
-
-    @Autowired
-    private MovimientoInsumoRepository movimientoInsumoRepository;
 
     @Autowired
     private RecetaExtraRepository recetaExtraRepository;
@@ -48,21 +51,18 @@ public class PedidoService {
         Mesa mesa = mesaRepository.findById(request.getMesaId())
                 .orElseThrow(() -> new RuntimeException("Mesa not found with id: " + request.getMesaId()));
 
-        // Marcar mesa como ocupada al crear pedido (si está disponible)
         if ("disponible".equalsIgnoreCase(mesa.getEstado())) {
             mesa.setEstado("ocupada");
             mesaRepository.save(mesa);
         }
-        // Si está ocupada, mantener (permite múltiples pedidos en misma mesa)
-        // Si está reservada, no cambiar (respetar reserva)
 
-        // Find or create open Cuenta for this mesa
         Cuenta cuenta = cuentaService.findOrCreateOpenCuenta(mesa, null);
 
         Pedido pedido = new Pedido();
         pedido.setMesa(mesa);
         pedido.setCuenta(cuenta);
         pedido.setObservaciones(request.getObservaciones());
+        pedido.setEstado("PENDIENTE");
 
         for (PedidoItemRequestDTO itemRequest : request.getItems()) {
             Producto producto = productoRepository.findById(itemRequest.getProductoId())
@@ -73,12 +73,15 @@ public class PedidoService {
             item.setProducto(producto);
             item.setCantidad(itemRequest.getCantidad());
             item.setPrecioUnitario(producto.getPrecio());
+            item.setEstacion(producto.getEstacion() == null ? "HOT" : producto.getEstacion());
+            item.setEstado("PENDIENTE");
 
-            // Handle extras if present
             if (itemRequest.getExtras() != null && !itemRequest.getExtras().isEmpty()) {
                 for (PedidoItemExtraRequestDTO extraRequest : itemRequest.getExtras()) {
                     RecetaExtra recetaExtra = recetaExtraRepository.findById(extraRequest.getRecetaExtraId())
-                            .orElseThrow(() -> new RuntimeException("RecetaExtra not found with id: " + extraRequest.getRecetaExtraId()));
+                            .orElseThrow(() -> new RuntimeException(
+                                    "RecetaExtra not found with id: " + extraRequest.getRecetaExtraId()
+                            ));
 
                     PedidoItemExtra pedidoItemExtra = new PedidoItemExtra();
                     pedidoItemExtra.setPedidoItem(item);
@@ -106,20 +109,27 @@ public class PedidoService {
     public PedidoResponseDTO getPedidoById(Long id) {
         Pedido pedido = pedidoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Pedido not found with id: " + id));
+
         return mapToResponseDTO(pedido);
     }
 
     public List<PedidoResponseDTO> getActivePedidos() {
         return pedidoRepository.findAll().stream()
-                .filter(pedido -> !pedido.getEstado().equals("LISTO") && !pedido.getEstado().equals("PAGADO"))
+                .filter(pedido -> {
+                    String estado = pedido.getEstado();
+
+                    return estado == null
+                            || (!estado.equalsIgnoreCase("FACTURADO")
+                            && !estado.equalsIgnoreCase("CANCELADO")
+                            && !estado.equalsIgnoreCase("ENTREGADO"));
+                })
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
     }
 
     public List<PedidoResponseDTO> getPedidosListosParaFacturar() {
         return pedidoRepository.findAll().stream()
-                .filter(pedido -> pedido.getEstado().equals("LISTO"))
-                .filter(pedido -> pedido.getFactura() == null)
+                .filter(pedido -> "LISTO".equalsIgnoreCase(pedido.getEstado()))
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
     }
@@ -129,122 +139,122 @@ public class PedidoService {
         Pedido pedido = pedidoRepository.findById(pedidoId)
                 .orElseThrow(() -> new RuntimeException("Pedido not found with id: " + pedidoId));
 
-        if (!PedidoEstado.isValid(nuevoEstado)) {
-            throw new RuntimeException("Invalid estado: " + nuevoEstado);
-        }
-
-        if (!PedidoEstado.isValidTransition(pedido.getEstado(), nuevoEstado)) {
-            throw new RuntimeException("Invalid transition from " + pedido.getEstado() + " to " + nuevoEstado);
-        }
-
-        if (nuevoEstado.equals("LISTO")) {
-            deductInventory(pedido);
-        }
-
         pedido.setEstado(nuevoEstado);
+
         Pedido savedPedido = pedidoRepository.save(pedido);
         return mapToResponseDTO(savedPedido);
     }
 
-    private void deductInventory(Pedido pedido) {
-        for (PedidoItem pedidoItem : pedido.getItems()) {
-            Optional<Receta> recetaOpt = recetaRepository.findByProductoId(pedidoItem.getProducto().getId());
+    public List<CocinaItemResponseDTO> getItemsCocinaPorEstacion(String estacion) {
+        return pedidoItemRepository.findAll().stream()
+                .filter(item -> item.getEstacion() != null && item.getEstacion().equalsIgnoreCase(estacion))
+                .filter(item -> item.getEstado() != null && (
+                        item.getEstado().equalsIgnoreCase("PENDIENTE")
+                                || item.getEstado().equalsIgnoreCase("PREPARACION")
+                                || item.getEstado().equalsIgnoreCase("LISTO")
+                ))
+                .map(this::mapToCocinaItemDTO)
+                .collect(Collectors.toList());
+    }
 
-            if (recetaOpt.isEmpty()) {
-                continue;
-            }
+    public List<CocinaItemResponseDTO> getItemsListosParaServir() {
+        return pedidoItemRepository.findAll().stream()
+                .filter(item -> item.getEstado() != null && item.getEstado().equalsIgnoreCase("LISTO"))
+                .map(this::mapToCocinaItemDTO)
+                .collect(Collectors.toList());
+    }
 
-            Receta receta = recetaOpt.get();
+    @Transactional
+    public CocinaItemResponseDTO cambiarEstadoItem(Long itemId, String nuevoEstado) {
+        PedidoItem item = pedidoItemRepository.findById(itemId)
+                .orElseThrow(() -> new RuntimeException("PedidoItem not found with id: " + itemId));
 
-            for (RecetaItem recetaItem : receta.getItems()) {
-                double cantidadADeducir = recetaItem.getCantidadNecesaria() * pedidoItem.getCantidad();
-                Insumo insumo = recetaItem.getInsumo();
+        item.setEstado(nuevoEstado);
 
-                if (insumo.getStockActual() < cantidadADeducir) {
-                    throw new RuntimeException("Stock insuficiente para insumo: " + insumo.getNombre() +
-                            ". Disponible: " + insumo.getStockActual() + ", Necesario: " + cantidadADeducir);
-                }
+        PedidoItem savedItem = pedidoItemRepository.save(item);
 
-                insumo.setStockActual(insumo.getStockActual() - cantidadADeducir);
+        actualizarEstadoPedidoDesdeItems(savedItem.getPedido());
 
-                MovimientoInsumo movimiento = new MovimientoInsumo();
-                movimiento.setInsumo(insumo);
-                movimiento.setCantidad(-cantidadADeducir);
-                movimiento.setTipo("CONSUMO");
-                movimiento.setDescripcion("Consumo por pedido #" + pedido.getId() + " - " +
-                        pedidoItem.getProducto().getNombre() + " x" + pedidoItem.getCantidad());
+        return mapToCocinaItemDTO(savedItem);
+    }
 
-                movimientoInsumoRepository.save(movimiento);
-                insumoRepository.save(insumo);
-            }
-
-            // Deduct inventory for extras
-            for (PedidoItemExtra extra : pedidoItem.getExtras()) {
-                RecetaExtra recetaExtra = extra.getRecetaExtra();
-                double cantidadADeducir = recetaExtra.getCantidadInsumo() * extra.getCantidad() * pedidoItem.getCantidad();
-                Insumo insumo = recetaExtra.getInsumo();
-
-                if (insumo.getStockActual() < cantidadADeducir) {
-                    throw new RuntimeException("Stock insuficiente para extra: " + recetaExtra.getNombre() +
-                            ". Disponible: " + insumo.getStockActual() + ", Necesario: " + cantidadADeducir);
-                }
-
-                insumo.setStockActual(insumo.getStockActual() - cantidadADeducir);
-
-                MovimientoInsumo movimiento = new MovimientoInsumo();
-                movimiento.setInsumo(insumo);
-                movimiento.setCantidad(-cantidadADeducir);
-                movimiento.setTipo("CONSUMO");
-                movimiento.setDescripcion("Consumo por pedido #" + pedido.getId() + " - Extra: " +
-                        recetaExtra.getNombre() + " x" + extra.getCantidad() + " (Item: " +
-                        pedidoItem.getProducto().getNombre() + " x" + pedidoItem.getCantidad() + ")");
-
-                movimientoInsumoRepository.save(movimiento);
-                insumoRepository.save(insumo);
-            }
+    private void actualizarEstadoPedidoDesdeItems(Pedido pedido) {
+        if (pedido == null || pedido.getItems() == null || pedido.getItems().isEmpty()) {
+            return;
         }
+
+        boolean allEntregado = pedido.getItems().stream()
+                .allMatch(i -> "ENTREGADO".equalsIgnoreCase(i.getEstado()));
+
+        boolean allListoOrEntregado = pedido.getItems().stream()
+                .allMatch(i ->
+                        "LISTO".equalsIgnoreCase(i.getEstado())
+                                || "ENTREGADO".equalsIgnoreCase(i.getEstado())
+                );
+
+        boolean anyPreparacion = pedido.getItems().stream()
+                .anyMatch(i -> "PREPARACION".equalsIgnoreCase(i.getEstado()));
+
+        boolean anyPendiente = pedido.getItems().stream()
+                .anyMatch(i -> "PENDIENTE".equalsIgnoreCase(i.getEstado()));
+
+        if (allEntregado) {
+            pedido.setEstado("ENTREGADO");
+        } else if (allListoOrEntregado) {
+            pedido.setEstado("LISTO");
+        } else if (anyPreparacion) {
+            pedido.setEstado("PREPARACION");
+        } else if (anyPendiente) {
+            pedido.setEstado("PENDIENTE");
+        }
+
+        pedidoRepository.save(pedido);
+    }
+
+    private CocinaItemResponseDTO mapToCocinaItemDTO(PedidoItem item) {
+        CocinaItemResponseDTO dto = new CocinaItemResponseDTO();
+
+        dto.setItemId(item.getId());
+        dto.setPedidoId(item.getPedido().getId());
+        dto.setMesaCodigo(item.getPedido().getMesa().getCodigo());
+        dto.setProductoNombre(item.getProducto().getNombre());
+        dto.setCantidad(item.getCantidad());
+        dto.setObservaciones(item.getPedido().getObservaciones());
+        dto.setEstacion(item.getEstacion());
+        dto.setEstado(item.getEstado());
+
+        return dto;
     }
 
     private PedidoResponseDTO mapToResponseDTO(Pedido pedido) {
         PedidoResponseDTO dto = new PedidoResponseDTO();
+
         dto.setId(pedido.getId());
         dto.setMesaId(pedido.getMesa().getId());
         dto.setMesaCodigo(pedido.getMesa().getCodigo());
-        dto.setFechaHora(pedido.getFechaHora());
-        dto.setEstado(pedido.getEstado());
         dto.setObservaciones(pedido.getObservaciones());
+        dto.setEstado(pedido.getEstado());
+
+        if (pedido.getFechaHora() != null) {
+            dto.setFechaHora(pedido.getFechaHora());
+        }
 
         List<PedidoItemResponseDTO> items = pedido.getItems().stream()
-                .map(this::mapItemToResponseDTO)
+                .map(item -> {
+                    PedidoItemResponseDTO itemDTO = new PedidoItemResponseDTO();
+
+                    itemDTO.setId(item.getId());
+                    itemDTO.setProductoId(item.getProducto().getId());
+                    itemDTO.setProductoNombre(item.getProducto().getNombre());
+                    itemDTO.setCantidad(item.getCantidad());
+                    itemDTO.setPrecioUnitario(item.getPrecioUnitario());
+
+                    return itemDTO;
+                })
                 .collect(Collectors.toList());
+
         dto.setItems(items);
 
-        return dto;
-    }
-
-    private PedidoItemResponseDTO mapItemToResponseDTO(PedidoItem item) {
-        PedidoItemResponseDTO dto = new PedidoItemResponseDTO();
-        dto.setId(item.getId());
-        dto.setProductoId(item.getProducto().getId());
-        dto.setProductoNombre(item.getProducto().getNombre());
-        dto.setCantidad(item.getCantidad());
-        dto.setPrecioUnitario(item.getPrecioUnitario());
-
-        // Map extras
-        List<PedidoItemExtraResponseDTO> extraDTOs = item.getExtras().stream()
-                .map(this::mapExtraToResponseDTO)
-                .collect(Collectors.toList());
-        dto.setExtras(extraDTOs);
-
-        return dto;
-    }
-
-    private PedidoItemExtraResponseDTO mapExtraToResponseDTO(PedidoItemExtra extra) {
-        PedidoItemExtraResponseDTO dto = new PedidoItemExtraResponseDTO();
-        dto.setId(extra.getId());
-        dto.setNombre(extra.getRecetaExtra().getNombre());
-        dto.setCantidad(extra.getCantidad());
-        dto.setPrecioUnitario(extra.getPrecioUnitario());
         return dto;
     }
 }

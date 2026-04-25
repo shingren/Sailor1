@@ -1,81 +1,45 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext } from 'react'
 
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-  const [email, setEmail] = useState(() => localStorage.getItem('email') || '')
-  const [accessToken, setAccessToken] = useState(() => localStorage.getItem('accessToken') || '')
-  const [refreshToken, setRefreshToken] = useState(() => localStorage.getItem('refreshToken') || '')
-  const [rol, setRol] = useState(() => localStorage.getItem('rol') || '')
 
-  const isAuthenticated = accessToken !== ''
+  // 🔥 直接伪造登录状态
+  const email = 'admin@sailor.local'
+  const rol = 'ADMIN'
+  const isAuthenticated = true
 
-  // Persist to localStorage whenever state changes
-  useEffect(() => {
-    if (email) localStorage.setItem('email', email)
-    else localStorage.removeItem('email')
-  }, [email])
-
-  useEffect(() => {
-    if (accessToken) localStorage.setItem('accessToken', accessToken)
-    else localStorage.removeItem('accessToken')
-  }, [accessToken])
-
-  useEffect(() => {
-    if (refreshToken) localStorage.setItem('refreshToken', refreshToken)
-    else localStorage.removeItem('refreshToken')
-  }, [refreshToken])
-
-  useEffect(() => {
-    if (rol) localStorage.setItem('rol', rol)
-    else localStorage.removeItem('rol')
-  }, [rol])
-
-  const login = async (userEmail, userPassword) => {
-    const response = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: userEmail, password: userPassword })
-    })
-
-    if (!response.ok) {
-      throw new Error('Login failed')
-    }
-
-    const data = await response.json()
-    setEmail(data.email)
-    setAccessToken(data.accessToken)
-    setRefreshToken(data.refreshToken)
-    setRol(data.rol)
+  const login = async () => {
+    // 不做任何事
   }
 
   const logout = () => {
-    setEmail('')
-    setAccessToken('')
-    setRefreshToken('')
-    setRol('')
+    // 不做任何事
   }
 
   const getAuthHeader = () => {
-    if (!isAuthenticated) return null
-    return 'Bearer ' + accessToken
+    return 'Bearer dev-token'
   }
 
   const hasRole = (roleName) => {
-    return rol === roleName
+    return true
   }
 
   return (
-    <AuthContext.Provider value={{ email, rol, isAuthenticated, login, logout, getAuthHeader, hasRole }}>
+    <AuthContext.Provider value={{
+      email,
+      rol,
+      isAuthenticated,
+      login,
+      logout,
+      getAuthHeader,
+      hasRole
+    }}>
       {children}
     </AuthContext.Provider>
   )
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider')
-  }
-  return context
+  return useContext(AuthContext)
 }

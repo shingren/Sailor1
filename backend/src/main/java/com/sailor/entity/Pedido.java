@@ -24,7 +24,7 @@ public class Pedido {
     @Column(nullable = false)
     private LocalDateTime fechaHora;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private String estado = "PENDIENTE";
 
     @Column(length = 500)
@@ -54,6 +54,14 @@ public class Pedido {
 
     public void setMesa(Mesa mesa) {
         this.mesa = mesa;
+    }
+
+    public Cuenta getCuenta() {
+        return cuenta;
+    }
+
+    public void setCuenta(Cuenta cuenta) {
+        this.cuenta = cuenta;
     }
 
     public LocalDateTime getFechaHora() {
@@ -94,13 +102,5 @@ public class Pedido {
 
     public void setFactura(Factura factura) {
         this.factura = factura;
-    }
-
-    public Cuenta getCuenta() {
-        return cuenta;
-    }
-
-    public void setCuenta(Cuenta cuenta) {
-        this.cuenta = cuenta;
     }
 }

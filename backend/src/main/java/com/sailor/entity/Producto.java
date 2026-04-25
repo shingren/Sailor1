@@ -18,6 +18,9 @@ public class Producto {
     @Column(nullable = false)
     private double precio;
 
+    @Column(length = 20)
+    private String estacion = "HOT";
+
     @Column(nullable = false)
     private boolean activo = true;
 
@@ -61,6 +64,14 @@ public class Producto {
 
     public void setPrecio(double precio) {
         this.precio = precio;
+    }
+
+    public String getEstacion() {
+        return estacion;
+    }
+
+    public void setEstacion(String estacion) {
+        this.estacion = estacion;
     }
 
     public boolean isActivo() {

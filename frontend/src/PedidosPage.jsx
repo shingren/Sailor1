@@ -10,6 +10,8 @@ function PedidosPage() {
   const [mesas, setMesas] = useState([])
   const [productos, setProductos] = useState([])
   const [recetas, setRecetas] = useState([])
+  const [itemsListos, setItemsListos] = useState([])
+  const [loadingListos, setLoadingListos] = useState(false)
 
   const [loading, setLoading] = useState(true)
   const [loadingMesas, setLoadingMesas] = useState(true)
@@ -22,7 +24,6 @@ function PedidosPage() {
     items: []
   })
 
-  // POS UI State
   const [selectedCategory, setSelectedCategory] = useState('TODOS')
   const [selectedProductId, setSelectedProductId] = useState(null)
   const [currentQuantity, setCurrentQuantity] = useState(1)
@@ -34,10 +35,10 @@ function PedidosPage() {
       fetchMesas()
       fetchProductos()
       fetchRecetas()
+      fetchItemsListos()
     }
   }, [isAuthenticated])
 
-  // Pre-fill mesa from query parameter
   useEffect(() => {
     const params = new URLSearchParams(location.search)
     const mesaId = params.get('mesaId')
@@ -54,18 +55,16 @@ function PedidosPage() {
     setError('')
     try {
       const response = await fetch('/api/pedidos', {
-        headers: { 'Authorization': getAuthHeader() }
+        headers: { Authorization: getAuthHeader() }
       })
 
       if (response.status === 401) {
         setError('No autorizado - por favor inicia sesión nuevamente')
-        setLoading(false)
         return
       }
 
       if (!response.ok) {
         setError('Error al cargar pedidos')
-        setLoading(false)
         return
       }
 
@@ -82,7 +81,7 @@ function PedidosPage() {
     setLoadingMesas(true)
     try {
       const response = await fetch('/api/mesas', {
-        headers: { 'Authorization': getAuthHeader() }
+        headers: { Authorization: getAuthHeader() }
       })
 
       if (response.ok) {
@@ -100,7 +99,7 @@ function PedidosPage() {
     setLoadingProductos(true)
     try {
       const response = await fetch('/api/productos', {
-        headers: { 'Authorization': getAuthHeader() }
+        headers: { Authorization: getAuthHeader() }
       })
 
       if (response.ok) {
@@ -117,7 +116,7 @@ function PedidosPage() {
   const fetchRecetas = async () => {
     try {
       const response = await fetch('/api/recetas', {
-        headers: { 'Authorization': getAuthHeader() }
+        headers: { Authorization: getAuthHeader() }
       })
 
       if (response.ok) {
@@ -126,6 +125,43 @@ function PedidosPage() {
       }
     } catch (err) {
       console.error('Error al cargar recetas:', err)
+    }
+  }
+
+  const fetchItemsListos = async () => {
+    setLoadingListos(true)
+    try {
+      const response = await fetch('/api/cocina/items/listos', {
+        headers: { Authorization: getAuthHeader() }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setItemsListos(data)
+      }
+    } catch (err) {
+      console.error('Error al cargar items listos:', err)
+    } finally {
+      setLoadingListos(false)
+    }
+  }
+
+  const marcarItemEntregado = async (itemId) => {
+    try {
+      const response = await fetch(`/api/cocina/items/${itemId}/entregado`, {
+        method: 'POST',
+        headers: { Authorization: getAuthHeader() }
+      })
+
+      if (!response.ok) {
+        setError('Error al marcar plato como servido')
+        return
+      }
+
+      fetchItemsListos()
+      fetchPedidos()
+    } catch (err) {
+      setError('Error al marcar plato como servido: ' + err.message)
     }
   }
 
@@ -151,9 +187,10 @@ function PedidosPage() {
     }))
   }
 
-  // POS Helper Functions
   const getCategories = () => {
-    const categories = [...new Set(productos.filter(p => p.activo && p.categoria).map(p => p.categoria))]
+    const categories = [
+      ...new Set(productos.filter(p => p.activo && p.categoria).map(p => p.categoria))
+    ]
     return ['TODOS', ...categories]
   }
 
@@ -183,7 +220,6 @@ function PedidosPage() {
       items: [...prev.items, newItem]
     }))
 
-    // Reset selection
     setSelectedProductId(null)
     setCurrentQuantity(1)
     setCurrentExtras([])
@@ -192,27 +228,37 @@ function PedidosPage() {
   const handleExtraQuantityChange = (recetaExtraId, delta) => {
     setCurrentExtras(prev => {
       const existing = prev.find(e => e.recetaExtraId === recetaExtraId)
+
       if (existing) {
         const newQuantity = existing.cantidad + delta
+
         if (newQuantity <= 0) {
           return prev.filter(e => e.recetaExtraId !== recetaExtraId)
         }
+
         return prev.map(e =>
           e.recetaExtraId === recetaExtraId
             ? { ...e, cantidad: newQuantity }
             : e
         )
-      } else if (delta > 0) {
+      }
+
+      if (delta > 0) {
         const recetaExtra = getExtrasForProduct(selectedProductId).find(e => e.id === recetaExtraId)
+
         if (recetaExtra) {
-          return [...prev, {
-            recetaExtraId: recetaExtra.id,
-            nombre: recetaExtra.nombre,
-            precio: recetaExtra.precio,
-            cantidad: 1
-          }]
+          return [
+            ...prev,
+            {
+              recetaExtraId: recetaExtra.id,
+              nombre: recetaExtra.nombre,
+              precio: recetaExtra.precio,
+              cantidad: 1
+            }
+          ]
         }
       }
+
       return prev
     })
   }
@@ -220,8 +266,13 @@ function PedidosPage() {
   const calculateItemTotal = (item) => {
     const producto = productos.find(p => p.id === item.productoId)
     if (!producto) return 0
+
     const basePrice = producto.precio * item.cantidad
-    const extrasPrice = item.extras.reduce((sum, extra) => sum + (extra.precio * extra.cantidad * item.cantidad), 0)
+    const extrasPrice = item.extras.reduce(
+      (sum, extra) => sum + extra.precio * extra.cantidad * item.cantidad,
+      0
+    )
+
     return basePrice + extrasPrice
   }
 
@@ -259,6 +310,7 @@ function PedidosPage() {
     }
 
     const hasInvalidItems = formData.items.some(item => !item.productoId || item.cantidad < 1)
+
     if (hasInvalidItems) {
       setError('Todos los ítems deben tener un producto y cantidad >= 1')
       return
@@ -269,7 +321,7 @@ function PedidosPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': getAuthHeader()
+          Authorization: getAuthHeader()
         },
         body: JSON.stringify({
           mesaId: parseInt(formData.mesaId),
@@ -305,6 +357,7 @@ function PedidosPage() {
       setCurrentExtras([])
 
       fetchPedidos()
+      fetchItemsListos()
     } catch (err) {
       setError('Error al crear pedido: ' + err.message)
     }
@@ -322,17 +375,75 @@ function PedidosPage() {
     )
   }
 
-  // Calculate summary statistics
   const totalPedidos = pedidos.length
   const pedidosPendientes = pedidos.filter(p => p.estado === 'PENDIENTE').length
-  const pedidosEnPreparacion = pedidos.filter(p => p.estado === 'EN_PREPARACION' || p.estado === 'PREPARACION').length
+  const pedidosEnPreparacion = pedidos.filter(
+    p => p.estado === 'EN_PREPARACION' || p.estado === 'PREPARACION'
+  ).length
   const pedidosListos = pedidos.filter(p => p.estado === 'LISTO').length
 
   return (
     <div>
       <h1>Pedidos</h1>
 
-      {/* Summary Stats Section */}
+      <div className="card" style={{ border: '2px solid #10b981', backgroundColor: '#ecfdf5' }}>
+        <div className="card-header">
+          <h2 className="card-title">Platos listos para servir</h2>
+        </div>
+
+        {loadingListos ? (
+          <div className="loading">Cargando avisos...</div>
+        ) : itemsListos.length === 0 ? (
+          <p>No hay platos listos para servir</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {itemsListos.map(item => (
+              <div
+                key={item.itemId}
+                style={{
+                  padding: '12px',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #a7f3d0',
+                  borderRadius: '8px'
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '12px'
+                  }}
+                >
+                  <div>
+                    <strong>Mesa {item.mesaCodigo}</strong> - {item.productoNombre} x{item.cantidad}
+
+                    <div style={{ marginTop: '6px', fontSize: '0.9rem', color: '#065f46' }}>
+                      Estación: {item.estacion} · Estado: {item.estado}
+                    </div>
+
+                    {item.observaciones && item.observaciones.trim() !== '' && (
+                      <div style={{ marginTop: '6px', fontSize: '0.9rem', color: '#4b5563' }}>
+                        Observaciones: {item.observaciones}
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => marcarItemEntregado(item.itemId)}
+                    className="btn-success btn-small"
+                    style={{ whiteSpace: 'nowrap' }}
+                  >
+                    Servido
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div className="stats-grid">
         <div className="stat-card">
           <div className="stat-label">Total de Pedidos</div>
@@ -358,6 +469,7 @@ function PedidosPage() {
         <div className="card-header">
           <h2 className="card-title">Pedidos Activos</h2>
         </div>
+
         {loading ? (
           <div className="loading">Cargando</div>
         ) : (
@@ -386,13 +498,14 @@ function PedidosPage() {
                         pedido.estado === 'PENDIENTE' ? 'badge-yellow' :
                         pedido.estado === 'PREPARACION' ? 'badge-blue' :
                         pedido.estado === 'LISTO' ? 'badge-green' :
+                        pedido.estado === 'ENTREGADO' ? 'badge-green' :
                         'badge-gray'
                       }`}>
                         {pedido.estado}
                       </span>
                     </td>
-                    <td>{new Date(pedido.fechaHora).toLocaleString()}</td>
-                    <td>{pedido.items.length} ítems</td>
+                    <td>{pedido.fechaHora ? new Date(pedido.fechaHora).toLocaleString() : '-'}</td>
+                    <td>{pedido.items?.length || 0} ítems</td>
                   </tr>
                 ))
               )}
@@ -405,11 +518,11 @@ function PedidosPage() {
         <div className="card-header">
           <h2 className="card-title">Crear Nuevo Pedido - POS</h2>
         </div>
+
         {loadingMesas || loadingProductos ? (
           <div className="loading">Cargando</div>
         ) : (
           <form onSubmit={handleSubmit}>
-            {/* Mesa and Observaciones */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '15px', marginBottom: '20px' }}>
               <div>
                 <label htmlFor="mesaId" style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>
@@ -448,9 +561,11 @@ function PedidosPage() {
               </div>
             </div>
 
-            {/* Category Navigation */}
             <div style={{ marginBottom: '20px' }}>
-              <strong style={{ fontSize: '1.1rem', display: 'block', marginBottom: '10px' }}>Categorías:</strong>
+              <strong style={{ fontSize: '1.1rem', display: 'block', marginBottom: '10px' }}>
+                Categorías:
+              </strong>
+
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                 {getCategories().map(category => (
                   <button
@@ -475,12 +590,22 @@ function PedidosPage() {
               </div>
             </div>
 
-            {/* Product Grid and Selected Product Section */}
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px', marginBottom: '20px' }}>
-              {/* Product Grid */}
               <div>
-                <strong style={{ fontSize: '1.1rem', display: 'block', marginBottom: '10px' }}>Productos:</strong>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px', maxHeight: '500px', overflowY: 'auto', padding: '5px' }}>
+                <strong style={{ fontSize: '1.1rem', display: 'block', marginBottom: '10px' }}>
+                  Productos:
+                </strong>
+
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                    gap: '10px',
+                    maxHeight: '500px',
+                    overflowY: 'auto',
+                    padding: '5px'
+                  }}
+                >
                   {getFilteredProducts().map(producto => (
                     <button
                       key={producto.id}
@@ -500,19 +625,33 @@ function PedidosPage() {
                         transition: 'all 0.2s'
                       }}
                     >
-                      <div style={{ fontWeight: 'bold', fontSize: '1rem', marginBottom: '5px' }}>{producto.nombre}</div>
-                      <div style={{ color: '#059669', fontSize: '1.1rem', fontWeight: 'bold' }}>${producto.precio.toFixed(2)}</div>
+                      <div style={{ fontWeight: 'bold', fontSize: '1rem', marginBottom: '5px' }}>
+                        {producto.nombre}
+                      </div>
+
+                      <div style={{ color: '#059669', fontSize: '1.1rem', fontWeight: 'bold' }}>
+                        ${producto.precio.toFixed(2)}
+                      </div>
+
+                      <div style={{ fontSize: '0.85rem', color: '#6b7280', marginTop: '5px' }}>
+                        Station: {producto.estacion || 'HOT'}
+                      </div>
+
                       {producto.descripcion && (
-                        <div style={{ fontSize: '0.85rem', color: '#6b7280', marginTop: '5px' }}>{producto.descripcion}</div>
+                        <div style={{ fontSize: '0.85rem', color: '#6b7280', marginTop: '5px' }}>
+                          {producto.descripcion}
+                        </div>
                       )}
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* Selected Product Details */}
               <div style={{ border: '2px solid #e5e7eb', borderRadius: '8px', padding: '15px', backgroundColor: '#f9fafb' }}>
-                <strong style={{ fontSize: '1.1rem', display: 'block', marginBottom: '10px' }}>Producto Seleccionado:</strong>
+                <strong style={{ fontSize: '1.1rem', display: 'block', marginBottom: '10px' }}>
+                  Producto Seleccionado:
+                </strong>
+
                 {selectedProductId ? (
                   <>
                     <div style={{ marginBottom: '15px' }}>
@@ -524,9 +663,11 @@ function PedidosPage() {
                       </div>
                     </div>
 
-                    {/* Quantity Controls */}
                     <div style={{ marginBottom: '15px' }}>
-                      <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px' }}>Cantidad:</label>
+                      <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px' }}>
+                        Cantidad:
+                      </label>
+
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <button
                           type="button"
@@ -544,9 +685,11 @@ function PedidosPage() {
                         >
                           -
                         </button>
+
                         <div style={{ fontSize: '1.5rem', fontWeight: 'bold', minWidth: '40px', textAlign: 'center' }}>
                           {currentQuantity}
                         </div>
+
                         <button
                           type="button"
                           onClick={() => setCurrentQuantity(currentQuantity + 1)}
@@ -566,10 +709,12 @@ function PedidosPage() {
                       </div>
                     </div>
 
-                    {/* Extras */}
                     {getExtrasForProduct(selectedProductId).length > 0 && (
                       <div style={{ marginBottom: '15px' }}>
-                        <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px' }}>Extras:</label>
+                        <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px' }}>
+                          Extras:
+                        </label>
+
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                           {getExtrasForProduct(selectedProductId).map(recetaExtra => {
                             const currentExtra = currentExtras.find(e => e.recetaExtraId === recetaExtra.id)
@@ -587,8 +732,11 @@ function PedidosPage() {
                               >
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
                                   <span style={{ fontWeight: '600' }}>{recetaExtra.nombre}</span>
-                                  <span style={{ color: '#059669', fontWeight: 'bold' }}>+${recetaExtra.precio.toFixed(2)}</span>
+                                  <span style={{ color: '#059669', fontWeight: 'bold' }}>
+                                    +${recetaExtra.precio.toFixed(2)}
+                                  </span>
                                 </div>
+
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                   <button
                                     type="button"
@@ -606,9 +754,11 @@ function PedidosPage() {
                                   >
                                     -
                                   </button>
+
                                   <div style={{ fontSize: '1.1rem', fontWeight: 'bold', minWidth: '30px', textAlign: 'center' }}>
                                     {quantity}
                                   </div>
+
                                   <button
                                     type="button"
                                     onClick={() => handleExtraQuantityChange(recetaExtra.id, 1)}
@@ -633,7 +783,6 @@ function PedidosPage() {
                       </div>
                     )}
 
-                    {/* Add to Cart Button */}
                     <button
                       type="button"
                       onClick={handleAddToCart}
@@ -651,9 +800,11 @@ function PedidosPage() {
               </div>
             </div>
 
-            {/* Order Summary (Cart) */}
             <div style={{ border: '2px solid #3b82f6', borderRadius: '8px', padding: '15px', backgroundColor: '#eff6ff', marginBottom: '20px' }}>
-              <strong style={{ fontSize: '1.2rem', display: 'block', marginBottom: '10px', color: '#1e40af' }}>Resumen del Pedido:</strong>
+              <strong style={{ fontSize: '1.2rem', display: 'block', marginBottom: '10px', color: '#1e40af' }}>
+                Resumen del Pedido:
+              </strong>
+
               {formData.items.length === 0 ? (
                 <div style={{ textAlign: 'center', color: '#6b7280', padding: '20px' }}>
                   El carrito está vacío. Agrega productos para continuar.
@@ -661,41 +812,51 @@ function PedidosPage() {
               ) : (
                 <>
                   <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                    {formData.items.map((item, index) => {
-                      const producto = productos.find(p => p.id === item.productoId)
-                      return (
-                        <div key={index} style={{ padding: '10px', marginBottom: '10px', backgroundColor: '#fff', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
-                            <div>
-                              <strong>{item.cantidad}x</strong> {getProductName(item.productoId)}
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                              <span style={{ fontWeight: 'bold', color: '#059669' }}>
-                                ${calculateItemTotal(item).toFixed(2)}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => removeItem(index)}
-                                className="btn-danger btn-small"
-                                style={{ padding: '5px 10px' }}
-                              >
-                                Eliminar
-                              </button>
-                            </div>
+                    {formData.items.map((item, index) => (
+                      <div
+                        key={index}
+                        style={{
+                          padding: '10px',
+                          marginBottom: '10px',
+                          backgroundColor: '#fff',
+                          borderRadius: '6px',
+                          border: '1px solid #cbd5e1'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+                          <div>
+                            <strong>{item.cantidad}x</strong> {getProductName(item.productoId)}
                           </div>
-                          {item.extras.length > 0 && (
-                            <ul style={{ marginLeft: '20px', fontSize: '0.9rem', color: '#6b7280', listStyleType: 'circle' }}>
-                              {item.extras.map((extra, idx) => (
-                                <li key={idx}>
-                                  + {extra.nombre} x{extra.cantidad} (${(extra.precio * extra.cantidad * item.cantidad).toFixed(2)})
-                                </li>
-                              ))}
-                            </ul>
-                          )}
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <span style={{ fontWeight: 'bold', color: '#059669' }}>
+                              ${calculateItemTotal(item).toFixed(2)}
+                            </span>
+
+                            <button
+                              type="button"
+                              onClick={() => removeItem(index)}
+                              className="btn-danger btn-small"
+                              style={{ padding: '5px 10px' }}
+                            >
+                              Eliminar
+                            </button>
+                          </div>
                         </div>
-                      )
-                    })}
+
+                        {item.extras.length > 0 && (
+                          <ul style={{ marginLeft: '20px', fontSize: '0.9rem', color: '#6b7280', listStyleType: 'circle' }}>
+                            {item.extras.map((extra, idx) => (
+                              <li key={idx}>
+                                + {extra.nombre} x{extra.cantidad} (${(extra.precio * extra.cantidad * item.cantidad).toFixed(2)})
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    ))}
                   </div>
+
                   <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '2px solid #3b82f6' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '1.3rem', fontWeight: 'bold' }}>
                       <span>Total:</span>
@@ -706,7 +867,6 @@ function PedidosPage() {
               )}
             </div>
 
-            {/* Action Buttons */}
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '15px' }}>
               <button
                 type="submit"
@@ -716,6 +876,7 @@ function PedidosPage() {
               >
                 Crear Pedido
               </button>
+
               <button
                 type="button"
                 onClick={clearCart}

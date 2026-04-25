@@ -10,6 +10,7 @@ function ProductosPage() {
     nombre: '',
     categoria: '',
     precio: '',
+    estacion: 'HOT',
     activo: true
   })
   const [createError, setCreateError] = useState(null)
@@ -63,6 +64,7 @@ function ProductosPage() {
           nombre: formData.nombre,
           categoria: formData.categoria || null,
           precio: parseFloat(formData.precio),
+          estacion: formData.estacion,
           activo: formData.activo
         })
       })
@@ -73,7 +75,13 @@ function ProductosPage() {
       }
       if (!response.ok) throw new Error('Error al crear producto')
 
-      setFormData({ nombre: '', categoria: '', precio: '', activo: true })
+      setFormData({
+        nombre: '',
+        categoria: '',
+        precio: '',
+        estacion: 'HOT',
+        activo: true
+      })
       fetchProductos()
     } catch (err) {
       setCreateError(err.message)
@@ -155,7 +163,6 @@ function ProductosPage() {
         return
       }
 
-      // Success
       setEditingPrecioId(null)
       setEditingPrecioValue('')
       fetchProductos()
@@ -201,6 +208,7 @@ function ProductosPage() {
               required
             />
           </div>
+
           <div>
             <label htmlFor="categoria">
               Categoría:
@@ -213,6 +221,7 @@ function ProductosPage() {
               onChange={handleChange}
             />
           </div>
+
           <div>
             <label htmlFor="precio">
               Precio:
@@ -227,6 +236,23 @@ function ProductosPage() {
               required
             />
           </div>
+
+          <div>
+            <label htmlFor="estacion">
+              Estación:
+            </label>
+            <select
+              id="estacion"
+              name="estacion"
+              value={formData.estacion}
+              onChange={handleChange}
+            >
+              <option value="HOT">HOT</option>
+              <option value="COLD">COLD</option>
+              <option value="PASTRY">PASTRY</option>
+            </select>
+          </div>
+
           <button type="submit" className="btn-primary">Crear Producto</button>
         </form>
         {createError && <div className="alert alert-error">{createError}</div>}
@@ -245,6 +271,7 @@ function ProductosPage() {
                 <th>ID</th>
                 <th>Nombre</th>
                 <th>Categoría</th>
+                <th>Estación</th>
                 <th>Precio</th>
                 <th>Activo</th>
               </tr>
@@ -255,9 +282,9 @@ function ProductosPage() {
                   <td>{producto.id}</td>
                   <td>{producto.nombre}</td>
                   <td>{producto.categoria || '-'}</td>
+                  <td>{producto.estacion || 'HOT'}</td>
                   <td>
                     {editingPrecioId === producto.id ? (
-                      // Modo edición (solo ADMIN puede llegar aquí)
                       <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
                         <input
                           type="number"
@@ -283,7 +310,6 @@ function ProductosPage() {
                         </button>
                       </div>
                     ) : (
-                      // Modo visualización
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                         <span>${producto.precio.toFixed(2)}</span>
                         {hasRole('ADMIN') && (
@@ -313,7 +339,11 @@ function ProductosPage() {
             </tbody>
           </table>
         )}
-        {precioError && <div className="alert alert-error" style={{ marginTop: '10px' }}>{precioError}</div>}
+        {precioError && (
+          <div className="alert alert-error" style={{ marginTop: '10px' }}>
+            {precioError}
+          </div>
+        )}
       </div>
     </div>
   )
