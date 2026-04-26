@@ -134,6 +134,23 @@ public class PedidoService {
                 .collect(Collectors.toList());
     }
 
+    public boolean mesaListaParaFacturar(Long mesaId) {
+        List<Pedido> pedidos = pedidoRepository.findAll().stream()
+                .filter(p -> p.getMesa() != null && p.getMesa().getId().equals(mesaId))
+                .filter(p -> p.getEstado() == null
+                        || (!p.getEstado().equalsIgnoreCase("FACTURADO")
+                        && !p.getEstado().equalsIgnoreCase("CANCELADO")))
+                .collect(Collectors.toList());
+
+        if (pedidos.isEmpty()) {
+            return false;
+        }
+
+        return pedidos.stream()
+                .flatMap(p -> p.getItems().stream())
+                .allMatch(item -> "ENTREGADO".equalsIgnoreCase(item.getEstado()));
+    }
+
     @Transactional
     public PedidoResponseDTO cambiarEstado(Long pedidoId, String nuevoEstado) {
         Pedido pedido = pedidoRepository.findById(pedidoId)

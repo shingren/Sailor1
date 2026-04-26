@@ -40,24 +40,21 @@ public class PedidoController {
         return pedidoService.getPedidosListosParaFacturar();
     }
 
+    @GetMapping("/mesa/{mesaId}/lista-para-facturar")
+    public boolean mesaListaParaFacturar(@PathVariable Long mesaId) {
+        return pedidoService.mesaListaParaFacturar(mesaId);
+    }
+
     @PatchMapping("/{id}/estado")
     public PedidoResponseDTO cambiarEstado(@PathVariable Long id, @RequestBody EstadoRequest request) {
         return pedidoService.cambiarEstado(id, request.getEstado());
     }
 
-    /**
-     * Endpoint específico para que COCINA inicie la preparación (PENDIENTE -> PREPARACION)
-     * Solo COCINA y ADMIN pueden acceder (definido en SecurityConfig)
-     */
     @PostMapping("/{id}/iniciar-preparacion")
     public PedidoResponseDTO iniciarPreparacion(@PathVariable Long id) {
         return pedidoService.cambiarEstado(id, "PREPARACION");
     }
 
-    /**
-     * Endpoint específico para que COCINA marque como listo (PREPARACION -> LISTO)
-     * Solo COCINA y ADMIN pueden acceder (definido en SecurityConfig)
-     */
     @PostMapping("/{id}/marcar-listo")
     public PedidoResponseDTO marcarListo(@PathVariable Long id) {
         return pedidoService.cambiarEstado(id, "LISTO");
