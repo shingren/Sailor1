@@ -10,6 +10,9 @@ public class PedidoResponseDTO {
     private LocalDateTime fechaHora;
     private String estado;
     private String observaciones;
+
+    private Boolean paraLlevar;
+
     private List<PedidoItemResponseDTO> items;
 
     public PedidoResponseDTO() {
@@ -61,6 +64,14 @@ public class PedidoResponseDTO {
 
     public void setObservaciones(String observaciones) {
         this.observaciones = observaciones;
+    }
+
+    public Boolean getParaLlevar() {
+        return paraLlevar;
+    }
+
+    public void setParaLlevar(Boolean paraLlevar) {
+        this.paraLlevar = paraLlevar;
     }
 
     public List<PedidoItemResponseDTO> getItems() {

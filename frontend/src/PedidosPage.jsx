@@ -21,6 +21,7 @@ function PedidosPage() {
   const [formData, setFormData] = useState({
     mesaId: '',
     observaciones: '',
+    paraLlevar: false,
     items: []
   })
 
@@ -170,6 +171,13 @@ function PedidosPage() {
     setFormData(prev => ({
       ...prev,
       [name]: value
+    }))
+  }
+
+  const handleParaLlevarChange = (e) => {
+    setFormData(prev => ({
+      ...prev,
+      paraLlevar: e.target.checked
     }))
   }
 
@@ -326,6 +334,7 @@ function PedidosPage() {
         body: JSON.stringify({
           mesaId: parseInt(formData.mesaId),
           observaciones: formData.observaciones,
+          paraLlevar: formData.paraLlevar,
           items: formData.items.map(item => ({
             productoId: parseInt(item.productoId),
             cantidad: item.cantidad,
@@ -350,6 +359,7 @@ function PedidosPage() {
       setFormData({
         mesaId: '',
         observaciones: '',
+        paraLlevar: false,
         items: []
       })
       setSelectedProductId(null)
@@ -479,6 +489,7 @@ function PedidosPage() {
                 <th>ID</th>
                 <th>Mesa</th>
                 <th>Estado</th>
+                <th>Tipo</th>
                 <th>Fecha</th>
                 <th>Ítems</th>
               </tr>
@@ -486,7 +497,7 @@ function PedidosPage() {
             <tbody>
               {pedidos.length === 0 ? (
                 <tr>
-                  <td colSpan="5">No se encontraron pedidos</td>
+                  <td colSpan="6">No se encontraron pedidos</td>
                 </tr>
               ) : (
                 pedidos.map(pedido => (
@@ -503,6 +514,11 @@ function PedidosPage() {
                       }`}>
                         {pedido.estado}
                       </span>
+                    </td>
+                    <td>
+                      <strong style={{ color: pedido.paraLlevar ? '#dc2626' : '#374151' }}>
+                        {pedido.paraLlevar ? '打包 / PARA LLEVAR' : '堂食'}
+                      </strong>
                     </td>
                     <td>{pedido.fechaHora ? new Date(pedido.fechaHora).toLocaleString() : '-'}</td>
                     <td>{pedido.items?.length || 0} ítems</td>
@@ -558,6 +574,24 @@ function PedidosPage() {
                   style={{ padding: '8px', fontSize: '1rem', marginTop: '5px' }}
                   placeholder="Notas especiales del pedido..."
                 />
+
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginTop: '12px',
+                    fontSize: '1rem',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={formData.paraLlevar}
+                    onChange={handleParaLlevarChange}
+                  />
+                  Para llevar / 打包带走
+                </label>
               </div>
             </div>
 
@@ -804,6 +838,10 @@ function PedidosPage() {
               <strong style={{ fontSize: '1.2rem', display: 'block', marginBottom: '10px', color: '#1e40af' }}>
                 Resumen del Pedido:
               </strong>
+
+              <div style={{ marginBottom: '10px', fontWeight: 'bold' }}>
+                Tipo: {formData.paraLlevar ? '打包 / PARA LLEVAR' : '堂食'}
+              </div>
 
               {formData.items.length === 0 ? (
                 <div style={{ textAlign: 'center', color: '#6b7280', padding: '20px' }}>

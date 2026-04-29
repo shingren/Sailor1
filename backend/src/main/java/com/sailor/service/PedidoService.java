@@ -64,6 +64,8 @@ public class PedidoService {
         pedido.setObservaciones(request.getObservaciones());
         pedido.setEstado("PENDIENTE");
 
+        pedido.setParaLlevar(Boolean.TRUE.equals(request.getParaLlevar()));
+
         for (PedidoItemRequestDTO itemRequest : request.getItems()) {
             Producto producto = productoRepository.findById(itemRequest.getProductoId())
                     .orElseThrow(() -> new RuntimeException("Producto not found with id: " + itemRequest.getProductoId()));
@@ -252,6 +254,8 @@ public class PedidoService {
         dto.setObservaciones(pedido.getObservaciones());
         dto.setEstado(pedido.getEstado());
 
+        dto.setParaLlevar(pedido.getParaLlevar());
+        
         if (pedido.getFechaHora() != null) {
             dto.setFechaHora(pedido.getFechaHora());
         }

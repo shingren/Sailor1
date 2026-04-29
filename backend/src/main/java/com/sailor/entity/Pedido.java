@@ -30,6 +30,9 @@ public class Pedido {
     @Column(length = 500)
     private String observaciones;
 
+    @Column(name = "para_llevar")
+    private Boolean paraLlevar = false;
+
     @OneToMany(mappedBy = "pedido", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PedidoItem> items = new ArrayList<>();
 
@@ -86,6 +89,14 @@ public class Pedido {
 
     public void setObservaciones(String observaciones) {
         this.observaciones = observaciones;
+    }
+
+    public Boolean getParaLlevar() {
+        return paraLlevar;
+    }
+
+    public void setParaLlevar(Boolean paraLlevar) {
+        this.paraLlevar = paraLlevar;
     }
 
     public List<PedidoItem> getItems() {

@@ -5,6 +5,7 @@ import java.util.List;
 public class PedidoCreateRequestDTO {
     private Long mesaId;
     private String observaciones;
+    private Boolean paraLlevar; // ⭐ 新增：是否打包
     private List<PedidoItemRequestDTO> items;
 
     public PedidoCreateRequestDTO() {
@@ -24,6 +25,14 @@ public class PedidoCreateRequestDTO {
 
     public void setObservaciones(String observaciones) {
         this.observaciones = observaciones;
+    }
+
+    public Boolean getParaLlevar() {
+        return paraLlevar;
+    }
+
+    public void setParaLlevar(Boolean paraLlevar) {
+        this.paraLlevar = paraLlevar;
     }
 
     public List<PedidoItemRequestDTO> getItems() {
