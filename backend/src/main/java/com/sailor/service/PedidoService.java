@@ -63,12 +63,12 @@ public class PedidoService {
         pedido.setCuenta(cuenta);
         pedido.setObservaciones(request.getObservaciones());
         pedido.setEstado("PENDIENTE");
-
         pedido.setParaLlevar(Boolean.TRUE.equals(request.getParaLlevar()));
 
         for (PedidoItemRequestDTO itemRequest : request.getItems()) {
             Producto producto = productoRepository.findById(itemRequest.getProductoId())
-                    .orElseThrow(() -> new RuntimeException("Producto not found with id: " + itemRequest.getProductoId()));
+                    .orElseThrow(
+                            () -> new RuntimeException("Producto not found with id: " + itemRequest.getProductoId()));
 
             PedidoItem item = new PedidoItem();
             item.setPedido(pedido);
@@ -82,8 +82,7 @@ public class PedidoService {
                 for (PedidoItemExtraRequestDTO extraRequest : itemRequest.getExtras()) {
                     RecetaExtra recetaExtra = recetaExtraRepository.findById(extraRequest.getRecetaExtraId())
                             .orElseThrow(() -> new RuntimeException(
-                                    "RecetaExtra not found with id: " + extraRequest.getRecetaExtraId()
-                            ));
+                                    "RecetaExtra not found with id: " + extraRequest.getRecetaExtraId()));
 
                     PedidoItemExtra pedidoItemExtra = new PedidoItemExtra();
                     pedidoItemExtra.setPedidoItem(item);
@@ -122,8 +121,8 @@ public class PedidoService {
 
                     return estado == null
                             || (!estado.equalsIgnoreCase("FACTURADO")
-                            && !estado.equalsIgnoreCase("CANCELADO")
-                            && !estado.equalsIgnoreCase("ENTREGADO"));
+                                    && !estado.equalsIgnoreCase("CANCELADO")
+                                    && !estado.equalsIgnoreCase("ENTREGADO"));
                 })
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
@@ -141,7 +140,7 @@ public class PedidoService {
                 .filter(p -> p.getMesa() != null && p.getMesa().getId().equals(mesaId))
                 .filter(p -> p.getEstado() == null
                         || (!p.getEstado().equalsIgnoreCase("FACTURADO")
-                        && !p.getEstado().equalsIgnoreCase("CANCELADO")))
+                                && !p.getEstado().equalsIgnoreCase("CANCELADO")))
                 .collect(Collectors.toList());
 
         if (pedidos.isEmpty()) {
@@ -164,14 +163,177 @@ public class PedidoService {
         return mapToResponseDTO(savedPedido);
     }
 
+    public String generarTicketCocina(Long pedidoId) {
+        Pedido pedido = pedidoRepository.findById(pedidoId)
+                .orElseThrow(() -> new RuntimeException("Pedido not found with id: " + pedidoId));
+
+        StringBuilder ticket = new StringBuilder();
+
+        ticket.append("========= COCINA =========\n");
+        ticket.append("Pedido #").append(pedido.getId()).append("\n");
+        ticket.append("Mesa: ").append(pedido.getMesa().getCodigo()).append("\n");
+        ticket.append("Tipo: ")
+                .append(Boolean.TRUE.equals(pedido.getParaLlevar()) ? "PARA LLEVAR / 打包" : "堂食")
+                .append("\n");
+
+        if (pedido.getFechaHora() != null) {
+            ticket.append("Fecha: ").append(pedido.getFechaHora()).append("\n");
+        }
+
+        if (pedido.getObservaciones() != null && !pedido.getObservaciones().trim().isEmpty()) {
+            ticket.append("Observaciones: ").append(pedido.getObservaciones()).append("\n");
+        }
+
+        ticket.append("==========================\n");
+
+        pedido.getItems().forEach(item -> {
+            ticket.append(item.getEstacion() == null ? "HOT" : item.getEstacion())
+                    .append(" | ")
+                    .append(item.getCantidad())
+                    .append("x ")
+                    .append(item.getProducto().getNombre())
+                    .append("\n");
+
+            if (item.getExtras() != null && !item.getExtras().isEmpty()) {
+                item.getExtras().forEach(extra -> {
+                    ticket.append("   + ")
+                            .append(extra.getRecetaExtra().getNombre())
+                            .append(" x")
+                            .append(extra.getCantidad())
+                            .append("\n");
+                });
+            }
+        });
+
+        ticket.append("==========================\n");
+
+        return ticket.toString();
+    }
+
+    public List<String> generarTicketsPorEstacion(Long pedidoId) {
+        Pedido pedido = pedidoRepository.findById(pedidoId)
+                .orElseThrow(() -> new RuntimeException("Pedido not found with id: " + pedidoId));
+
+        return pedido.getItems().stream()
+                .collect(Collectors.groupingBy(item -> item.getEstacion() == null ? "HOT" : item.getEstacion()))
+                .entrySet()
+                .stream()
+                .map(entry -> {
+                    String estacion = entry.getKey();
+                    List<PedidoItem> items = entry.getValue();
+
+                    StringBuilder ticket = new StringBuilder();
+
+                    ticket.append("===== ").append(estacion).append(" =====\n");
+                    ticket.append("Pedido #").append(pedido.getId()).append("\n");
+                    ticket.append("Mesa: ").append(pedido.getMesa().getCodigo()).append("\n");
+                    ticket.append("Tipo: ")
+                            .append(Boolean.TRUE.equals(pedido.getParaLlevar()) ? "PARA LLEVAR / 打包" : "堂食")
+                            .append("\n");
+
+                    if (pedido.getFechaHora() != null) {
+                        ticket.append("Fecha: ").append(pedido.getFechaHora()).append("\n");
+                    }
+
+                    if (pedido.getObservaciones() != null && !pedido.getObservaciones().trim().isEmpty()) {
+                        ticket.append("Observaciones: ").append(pedido.getObservaciones()).append("\n");
+                    }
+
+                    ticket.append("------------------------\n");
+
+                    for (PedidoItem item : items) {
+                        ticket.append(item.getCantidad())
+                                .append("x ")
+                                .append(item.getProducto().getNombre())
+                                .append("\n");
+
+                        if (item.getExtras() != null && !item.getExtras().isEmpty()) {
+                            item.getExtras().forEach(extra -> {
+                                ticket.append("   + ")
+                                        .append(extra.getRecetaExtra().getNombre())
+                                        .append(" x")
+                                        .append(extra.getCantidad())
+                                        .append("\n");
+                            });
+                        }
+                    }
+
+                    ticket.append("========================\n");
+
+                    return ticket.toString();
+                })
+                .collect(Collectors.toList());
+    }
+
+    public String generarTicketCliente(Long pedidoId) {
+        Pedido pedido = pedidoRepository.findById(pedidoId)
+                .orElseThrow(() -> new RuntimeException("Pedido not found with id: " + pedidoId));
+
+        StringBuilder ticket = new StringBuilder();
+
+        ticket.append("====== RESTAURANTE ======\n");
+        ticket.append("Pedido #").append(pedido.getId()).append("\n");
+        ticket.append("Mesa: ").append(pedido.getMesa().getCodigo()).append("\n");
+        ticket.append("Tipo: ")
+                .append(Boolean.TRUE.equals(pedido.getParaLlevar()) ? "PARA LLEVAR / 打包" : "堂食")
+                .append("\n");
+
+        if (pedido.getFechaHora() != null) {
+            ticket.append("Fecha: ").append(pedido.getFechaHora()).append("\n");
+        }
+
+        if (pedido.getObservaciones() != null && !pedido.getObservaciones().trim().isEmpty()) {
+            ticket.append("Observaciones: ").append(pedido.getObservaciones()).append("\n");
+        }
+
+        ticket.append("------------------------\n");
+
+        double total = 0.0;
+
+        for (PedidoItem item : pedido.getItems()) {
+            double precioUnitario = item.getPrecioUnitario();
+            double subtotal = precioUnitario * item.getCantidad();
+
+            ticket.append(item.getCantidad())
+                    .append("x ")
+                    .append(item.getProducto().getNombre())
+                    .append("  $")
+                    .append(String.format("%.2f", subtotal))
+                    .append("\n");
+
+            total += subtotal;
+
+            if (item.getExtras() != null && !item.getExtras().isEmpty()) {
+                for (PedidoItemExtra extra : item.getExtras()) {
+                    double extraPrecio = extra.getPrecioUnitario();
+                    double extraTotal = extraPrecio * extra.getCantidad() * item.getCantidad();
+
+                    ticket.append("   + ")
+                            .append(extra.getRecetaExtra().getNombre())
+                            .append(" x")
+                            .append(extra.getCantidad())
+                            .append("  $")
+                            .append(String.format("%.2f", extraTotal))
+                            .append("\n");
+
+                    total += extraTotal;
+                }
+            }
+        }
+
+        ticket.append("------------------------\n");
+        ticket.append("TOTAL: $").append(String.format("%.2f", total)).append("\n");
+        ticket.append("========================\n");
+
+        return ticket.toString();
+    }
+
     public List<CocinaItemResponseDTO> getItemsCocinaPorEstacion(String estacion) {
         return pedidoItemRepository.findAll().stream()
                 .filter(item -> item.getEstacion() != null && item.getEstacion().equalsIgnoreCase(estacion))
-                .filter(item -> item.getEstado() != null && (
-                        item.getEstado().equalsIgnoreCase("PENDIENTE")
-                                || item.getEstado().equalsIgnoreCase("PREPARACION")
-                                || item.getEstado().equalsIgnoreCase("LISTO")
-                ))
+                .filter(item -> item.getEstado() != null && (item.getEstado().equalsIgnoreCase("PENDIENTE")
+                        || item.getEstado().equalsIgnoreCase("PREPARACION")
+                        || item.getEstado().equalsIgnoreCase("LISTO")))
                 .map(this::mapToCocinaItemDTO)
                 .collect(Collectors.toList());
     }
@@ -206,10 +368,8 @@ public class PedidoService {
                 .allMatch(i -> "ENTREGADO".equalsIgnoreCase(i.getEstado()));
 
         boolean allListoOrEntregado = pedido.getItems().stream()
-                .allMatch(i ->
-                        "LISTO".equalsIgnoreCase(i.getEstado())
-                                || "ENTREGADO".equalsIgnoreCase(i.getEstado())
-                );
+                .allMatch(i -> "LISTO".equalsIgnoreCase(i.getEstado())
+                        || "ENTREGADO".equalsIgnoreCase(i.getEstado()));
 
         boolean anyPreparacion = pedido.getItems().stream()
                 .anyMatch(i -> "PREPARACION".equalsIgnoreCase(i.getEstado()));
@@ -253,9 +413,8 @@ public class PedidoService {
         dto.setMesaCodigo(pedido.getMesa().getCodigo());
         dto.setObservaciones(pedido.getObservaciones());
         dto.setEstado(pedido.getEstado());
-
         dto.setParaLlevar(pedido.getParaLlevar());
-        
+
         if (pedido.getFechaHora() != null) {
             dto.setFechaHora(pedido.getFechaHora());
         }

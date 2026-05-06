@@ -14,6 +14,21 @@ public class CocinaController {
     @Autowired
     private PedidoService pedidoService;
 
+    @GetMapping("/pedidos/{pedidoId}/ticket")
+    public String getTicketCocina(@PathVariable Long pedidoId) {
+        return pedidoService.generarTicketCocina(pedidoId);
+    }
+
+    @GetMapping("/pedidos/{pedidoId}/tickets")
+    public List<String> getTicketsPorEstacion(@PathVariable Long pedidoId) {
+        return pedidoService.generarTicketsPorEstacion(pedidoId);
+    }
+
+    @GetMapping("/pedidos/{pedidoId}/ticket-cliente")
+    public String getTicketCliente(@PathVariable Long pedidoId) {
+        return pedidoService.generarTicketCliente(pedidoId);
+    }
+
     @GetMapping("/items")
     public List<CocinaItemResponseDTO> getItemsPorEstacion(@RequestParam String estacion) {
         return pedidoService.getItemsCocinaPorEstacion(estacion);

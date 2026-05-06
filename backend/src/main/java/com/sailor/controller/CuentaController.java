@@ -14,28 +14,29 @@ public class CuentaController {
     @Autowired
     private CuentaService cuentaService;
 
-    /**
-     * Get all open cuentas (for "Ordenes Abiertas" section in UI)
-     */
     @GetMapping("/abiertas")
     public List<CuentaResponseDTO> getCuentasAbiertas() {
         return cuentaService.getCuentasAbiertas();
     }
 
-    /**
-     * Get cuentas ready for invoicing (for "Pedidos Listos para Facturar" section in UI)
-     */
     @GetMapping("/listas-facturar")
     public List<CuentaResponseDTO> getCuentasListasParaFacturar() {
         return cuentaService.getCuentasListasParaFacturar();
     }
 
-    /**
-     * Get cuenta by ID
-     */
     @GetMapping("/{id}")
     public CuentaResponseDTO getCuentaById(@PathVariable Long id) {
         return cuentaService.getCuentaById(id)
                 .orElseThrow(() -> new RuntimeException("Cuenta not found with id: " + id));
+    }
+
+    @GetMapping("/{id}/ticket")
+    public String getTicketCuenta(@PathVariable Long id) {
+        return cuentaService.generarTicketCuenta(id);
+    }
+
+    @PostMapping("/{id}/pagar")
+    public CuentaResponseDTO pagarCuenta(@PathVariable Long id) {
+        return cuentaService.pagarCuenta(id);
     }
 }

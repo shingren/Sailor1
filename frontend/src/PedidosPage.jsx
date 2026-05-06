@@ -166,6 +166,116 @@ function PedidosPage() {
     }
   }
 
+  const imprimirTicket = async (pedidoId) => {
+    try {
+      const response = await fetch(`/api/cocina/pedidos/${pedidoId}/tickets`, {
+        headers: { Authorization: getAuthHeader() }
+      })
+
+      if (!response.ok) {
+        alert('Error al generar tickets de cocina')
+        return
+      }
+
+      const tickets = await response.json()
+
+      if (!tickets || tickets.length === 0) {
+        alert('No hay tickets para imprimir')
+        return
+      }
+
+      tickets.forEach((text, index) => {
+        const printWindow = window.open('', '', 'width=400,height=600')
+
+        if (!printWindow) {
+          alert('El navegador bloqueó la ventana de impresión. Permite popups para localhost.')
+          return
+        }
+
+        printWindow.document.write(`
+          <html>
+            <head>
+              <title>Ticket Cocina</title>
+              <style>
+                body {
+                  font-family: monospace;
+                  white-space: pre-wrap;
+                  font-size: 14px;
+                  padding: 10px;
+                }
+              </style>
+            </head>
+            <body>${text}</body>
+          </html>
+        `)
+
+        printWindow.document.close()
+        printWindow.focus()
+
+        setTimeout(() => {
+          printWindow.print()
+          printWindow.close()
+        }, 500 + index * 800)
+      })
+    } catch (err) {
+      alert('Error: ' + err.message)
+    }
+  }
+
+  const imprimirTicketCliente = async (pedidoId) => {
+    try {
+      const response = await fetch(`/api/cocina/pedidos/${pedidoId}/ticket-cliente`, {
+        headers: { Authorization: getAuthHeader() }
+      })
+
+      if (!response.ok) {
+        alert('Error al generar ticket del cliente')
+        return
+      }
+
+      const text = await response.text()
+      const printWindow = window.open('', '', 'width=400,height=600')
+
+      if (!printWindow) {
+        alert('El navegador bloqueó la ventana de impresión. Permite popups para localhost.')
+        return
+      }
+
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Ticket Cliente</title>
+            <style>
+              body {
+                font-family: monospace;
+                white-space: pre-wrap;
+                font-size: 14px;
+                padding: 10px;
+              }
+
+              pre {
+                font-family: monospace;
+                white-space: pre-wrap;
+                margin: 0;
+              }
+            </style>
+          </head>
+          <body><pre>${text}</pre></body>
+        </html>
+      `)
+
+      printWindow.document.close()
+      printWindow.focus()
+
+      setTimeout(() => {
+        printWindow.print()
+        printWindow.close()
+      }, 300)
+    } catch (err) {
+      alert('Error: ' + err.message)
+    }
+  }
+
   const handleInputChange = (e) => {
     const { name, value } = e.target
     setFormData(prev => ({
@@ -356,6 +466,8 @@ function PedidosPage() {
         return
       }
 
+      const data = await response.json()
+
       setFormData({
         mesaId: '',
         observaciones: '',
@@ -368,6 +480,8 @@ function PedidosPage() {
 
       fetchPedidos()
       fetchItemsListos()
+
+      imprimirTicket(data.id)
     } catch (err) {
       setError('Error al crear pedido: ' + err.message)
     }
@@ -492,12 +606,13 @@ function PedidosPage() {
                 <th>Tipo</th>
                 <th>Fecha</th>
                 <th>Ítems</th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
               {pedidos.length === 0 ? (
                 <tr>
-                  <td colSpan="6">No se encontraron pedidos</td>
+                  <td colSpan="7">No se encontraron pedidos</td>
                 </tr>
               ) : (
                 pedidos.map(pedido => (
@@ -522,6 +637,24 @@ function PedidosPage() {
                     </td>
                     <td>{pedido.fechaHora ? new Date(pedido.fechaHora).toLocaleString() : '-'}</td>
                     <td>{pedido.items?.length || 0} ítems</td>
+                    <td>
+                      <button
+                        type="button"
+                        onClick={() => imprimirTicket(pedido.id)}
+                        className="btn-secondary btn-small"
+                      >
+                        🖨 Ticket Cocina
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => imprimirTicketCliente(pedido.id)}
+                        className="btn-secondary btn-small"
+                        style={{ marginLeft: '8px' }}
+                      >
+                        🧾 Ticket Cliente
+                      </button>
+                    </td>
                   </tr>
                 ))
               )}

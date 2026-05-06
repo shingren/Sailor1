@@ -15,6 +15,7 @@ import LoginPage from './LoginPage'
 import StaffPage from './StaffPage'
 import CierreCajaPage from './CierreCajaPage'
 import FloorplanPage from './FloorplanPage'
+import CuentasPage from './CuentasPage'
 
 // 开发阶段：直接放行所有受保护页面
 function ProtectedRoute({ children }) {
@@ -128,6 +129,17 @@ function App() {
           <OpenLayout>
             <ProtectedRoute>
               <CocinaPage />
+            </ProtectedRoute>
+          </OpenLayout>
+        }
+      />
+
+      <Route
+        path="/cuentas"
+        element={
+          <OpenLayout>
+            <ProtectedRoute>
+              <CuentasPage />
             </ProtectedRoute>
           </OpenLayout>
         }
