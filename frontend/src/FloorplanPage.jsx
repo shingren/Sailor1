@@ -88,7 +88,7 @@ function FloorplanPage() {
         }
       }
     } catch (err) {
-      setError('Error al cargar datos: ' + err.message)
+      setError('加载数据失败：' + err.message)
     } finally {
       setLoading(false)
     }
@@ -294,7 +294,7 @@ function FloorplanPage() {
           })
         })
       } catch (err) {
-        console.error('Error saving position:', err)
+        console.error('保存位置失败：', err)
       }
       setDraggedMesa(null)
     }
@@ -303,7 +303,7 @@ function FloorplanPage() {
 
   const handleToggleLock = async () => {
     if (selectedMesas.length !== 1) {
-      alert('Selecciona exactamente una mesa para bloquear/desbloquear')
+      alert('请选择一张餐桌进行锁定或解锁')
       return
     }
 
@@ -319,13 +319,13 @@ function FloorplanPage() {
         fetchData()
       }
     } catch (err) {
-      setError('Error al bloquear/desbloquear mesa: ' + err.message)
+      setError('锁定或解锁餐桌失败：' + err.message)
     }
   }
 
   const handleJoinTables = async () => {
     if (selectedMesas.length < 2) {
-      alert('Selecciona al menos 2 mesas para unir (usa Shift+Click)')
+      alert('请至少选择 2 张餐桌进行合并，可以使用 Shift + 点击多选')
       return
     }
 
@@ -344,13 +344,13 @@ function FloorplanPage() {
         setSelectedMesas([])
       }
     } catch (err) {
-      setError('Error al unir mesas: ' + err.message)
+      setError('合并餐桌失败：' + err.message)
     }
   }
 
   const handleSplitTable = async () => {
     if (selectedMesas.length !== 1) {
-      alert('Selecciona exactamente una mesa para separar')
+      alert('请选择一张餐桌进行分离')
       return
     }
 
@@ -368,13 +368,13 @@ function FloorplanPage() {
         setSelectedMesas([])
       }
     } catch (err) {
-      setError('Error al separar mesa: ' + err.message)
+      setError('分离餐桌失败：' + err.message)
     }
   }
 
   const handleOpenOrder = () => {
     if (selectedMesas.length !== 1) {
-      alert('Selecciona exactamente una mesa para abrir pedido')
+      alert('请选择一张餐桌来打开订单')
       return
     }
     // Navigate to pedidos page with mesa preselected
@@ -396,9 +396,9 @@ function FloorplanPage() {
     return (
       <div className="centered-container">
         <div className="card">
-          <h2>Plano de Sala</h2>
-          <p>Debes iniciar sesión para ver esta página</p>
-          <Link to="/login" className="btn-primary">Ir a Iniciar Sesión</Link>
+          <h2>餐桌平面图</h2>
+          <p>请先登录后再查看此页面</p>
+          <Link to="/login" className="btn-primary">去登录</Link>
         </div>
       </div>
     )
@@ -406,7 +406,7 @@ function FloorplanPage() {
 
   return (
     <div>
-      <h1>Plano de Sala Interactivo</h1>
+      <h1>餐桌平面图</h1>
 
       {error && <div className="alert alert-error">{error}</div>}
 
@@ -415,14 +415,14 @@ function FloorplanPage() {
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
           {/* Location Selection */}
           <div>
-            <label htmlFor="location-select" style={{ marginRight: '10px' }}>Ubicación:</label>
+            <label htmlFor="location-select" style={{ marginRight: '10px' }}>区域：</label>
             <select
               id="location-select"
               value={selectedLocation || ''}
               onChange={(e) => setSelectedLocation(e.target.value ? parseInt(e.target.value) : null)}
               style={{ padding: '8px' }}
             >
-              <option value="">-- Sin Ubicación --</option>
+              <option value="">-- 无区域 --</option>
               {locations.map(location => (
                 <option key={location.id} value={location.id}>
                   {location.name}
@@ -434,13 +434,13 @@ function FloorplanPage() {
           {/* Zoom Controls */}
           <div style={{ display: 'flex', gap: '5px' }}>
             <button onClick={() => setScale(s => Math.min(s + 0.1, 2))} className="btn-secondary btn-small">
-              Acercar
+              放大
             </button>
             <button onClick={() => setScale(s => Math.max(s - 0.1, 0.5))} className="btn-secondary btn-small">
-              Alejar
+              缩小
             </button>
             <button onClick={handleResetView} className="btn-secondary btn-small">
-              Restablecer Vista
+              重置视图
             </button>
           </div>
 
@@ -453,7 +453,7 @@ function FloorplanPage() {
                   onClick={() => handleZoomToLocation(location.id)}
                   className="btn-secondary btn-small"
                 >
-                  Ir a {location.name}
+                  前往 {location.name}
                 </button>
               ))}
             </div>
@@ -462,21 +462,21 @@ function FloorplanPage() {
           {/* Table Actions */}
           <div style={{ display: 'flex', gap: '5px', marginLeft: 'auto' }}>
             <button onClick={handleJoinTables} className="btn-primary btn-small" disabled={selectedMesas.length < 2}>
-              Unir Mesas ({selectedMesas.length})
+              合并餐桌 ({selectedMesas.length})
             </button>
             <button onClick={handleSplitTable} className="btn-secondary btn-small" disabled={selectedMesas.length !== 1}>
-              Separar Mesa
+              分离餐桌
             </button>
             <button
               onClick={handleToggleLock}
               className="btn-warning btn-small"
               disabled={selectedMesas.length !== 1}
-              title={selectedMesas.length === 1 && mesas.find(m => m.id === selectedMesas[0])?.isLocked ? 'Desbloquear mesa' : 'Bloquear mesa'}
+              title={selectedMesas.length === 1 && mesas.find(m => m.id === selectedMesas[0])?.isLocked ? '解锁餐桌' : '锁定餐桌'}
             >
-              {selectedMesas.length === 1 && mesas.find(m => m.id === selectedMesas[0])?.isLocked ? '🔓 Desbloquear' : '🔒 Bloquear'}
+              {selectedMesas.length === 1 && mesas.find(m => m.id === selectedMesas[0])?.isLocked ? '解锁' : '锁定'}
             </button>
             <button onClick={handleOpenOrder} className="btn-success btn-small" disabled={selectedMesas.length !== 1}>
-              Abrir Pedido
+              打开订单
             </button>
           </div>
         </div>
@@ -484,38 +484,38 @@ function FloorplanPage() {
 
       {/* Legend */}
       <div className="card" style={{ marginBottom: '20px' }}>
-        <strong>Leyenda de Estados:</strong>
+        <strong>状态图例：</strong>
         <div style={{ display: 'flex', gap: '20px', marginTop: '10px', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div style={{ width: '20px', height: '20px', borderRadius: '50%', backgroundColor: '#10b981' }}></div>
-            <span>Libre</span>
+            <span>空闲</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div style={{ width: '20px', height: '20px', borderRadius: '50%', backgroundColor: '#ef4444' }}></div>
-            <span>Ocupada</span>
+            <span>已占用</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div style={{ width: '20px', height: '20px', borderRadius: '50%', backgroundColor: '#f59e0b' }}></div>
-            <span>Reservada</span>
+            <span>已预订</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: '3px solid #3b82f6', backgroundColor: '#fff' }}></div>
-            <span>Mesas Unidas (punto azul)</span>
+            <span>已合并餐桌（蓝点）</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '20px' }}>🔒</span>
-            <span>Mesa Bloqueada (posición fija)</span>
+            <span style={{ fontSize: '20px' }}>锁定</span>
+            <span>已锁定餐桌（固定位置）</span>
           </div>
         </div>
         <p style={{ marginTop: '10px', fontSize: '14px', color: '#6b7280' }}>
-          <strong>Consejo:</strong> Haz clic y arrastra para mover mesas. Shift+Clic para seleccionar múltiples mesas. Haz clic en el espacio vacío y arrastra para desplazar el plano. Las mesas bloqueadas no se pueden arrastrar. El estado se gestiona desde la página de Mesas.
+          <strong>Consejo:</strong> 点击并拖动可以移动餐桌。按住 Shift 并点击可以选择多个餐桌。点击空白区域并拖动可以移动平面图。已锁定的餐桌不能拖动。餐桌状态请在“餐桌”页面中管理。
         </p>
       </div>
 
       {/* Canvas */}
       <div className="card" ref={containerRef}>
         {loading ? (
-          <div className="loading">Cargando plano de sala...</div>
+          <div className="loading">正在加载餐桌平面图...</div>
         ) : (
           <div style={{ overflow: 'hidden', border: '2px solid #e5e7eb', borderRadius: '8px' }}>
             <canvas

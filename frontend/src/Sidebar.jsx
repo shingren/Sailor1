@@ -25,50 +25,50 @@ function Sidebar() {
 
   return (
     <div className={`sidebar ${isExpanded ? 'expanded' : 'collapsed'}`}>
-      <button className="sidebar-toggle" onClick={toggleSidebar} aria-label="Toggle sidebar">
+      <button className="sidebar-toggle" onClick={toggleSidebar} aria-label="切换侧边栏">
         ≡
       </button>
 
       {isExpanded && (
         <nav className="sidebar-nav">
           <Link to="/" className={`sidebar-link ${isActive('/') ? 'active' : ''}`}>
-            Inicio
+            首页
           </Link>
           <Link to="/mesas" className={`sidebar-link ${isActive('/mesas') ? 'active' : ''}`}>
-            Mesas
+            餐桌
           </Link>
           <Link to="/floorplan" className={`sidebar-link ${isActive('/floorplan') ? 'active' : ''}`}>
-            Plano de Sala
+            餐桌平面图
           </Link>
           <Link to="/productos" className={`sidebar-link ${isActive('/productos') ? 'active' : ''}`}>
-            Productos
+            商品
           </Link>
           <Link to="/pedidos" className={`sidebar-link ${isActive('/pedidos') ? 'active' : ''}`}>
-            Pedidos
+            订单
           </Link>
           <Link to="/cocina" className={`sidebar-link ${isActive('/cocina') ? 'active' : ''}`}>
-            Cocina
+            后厨
           </Link>
           <Link to="/facturas" className={`sidebar-link ${isActive('/facturas') ? 'active' : ''}`}>
-            Facturas
+            账单
           </Link>
           <Link to="/inventario" className={`sidebar-link ${isActive('/inventario') ? 'active' : ''}`}>
-            Inventario
+            库存
           </Link>
           <Link to="/reservas" className={`sidebar-link ${isActive('/reservas') ? 'active' : ''}`}>
-            Reservas
+            预订
           </Link>
           <Link to="/reportes" className={`sidebar-link ${isActive('/reportes') ? 'active' : ''}`}>
-            Reportes
+            报表
           </Link>
           {(rol === 'ADMIN' || rol === 'CAJA') && (
             <Link to="/cierre-caja" className={`sidebar-link ${isActive('/cierre-caja') ? 'active' : ''}`}>
-              Cierre de Caja
+              收银结算
             </Link>
           )}
           {rol === 'ADMIN' && (
             <Link to="/staff" className={`sidebar-link ${isActive('/staff') ? 'active' : ''}`}>
-              Personal
+              员工
             </Link>
           )}
         </nav>

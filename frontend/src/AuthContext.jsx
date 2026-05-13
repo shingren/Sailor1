@@ -4,7 +4,6 @@ const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
 
-  // 🔥 直接伪造登录状态
   const email = 'admin@sailor.local'
   const rol = 'ADMIN'
   const isAuthenticated = true

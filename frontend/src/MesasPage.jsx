@@ -38,10 +38,10 @@ function MesasPage() {
         }
       })
       if (response.status === 401) {
-        setError('No autorizado - por favor inicia sesión nuevamente')
+        setError('未授权，请重新登录')
         return
       }
-      if (!response.ok) throw new Error('Error al cargar mesas')
+      if (!response.ok) throw new Error('加载餐桌失败')
       const data = await response.json()
       setMesas(data)
     } catch (err) {
@@ -64,7 +64,7 @@ function MesasPage() {
         setLocations(data)
       }
     } catch (err) {
-      console.error('Error fetching locations:', err)
+      console.error('获取区域失败:', err)
     } finally {
       setLoadingLocations(false)
     }
@@ -87,18 +87,18 @@ function MesasPage() {
       if (response.ok) {
         setNewLocationName('')
         fetchLocations()
-        setSuccess(`Ubicación "${newLocationName}" creada exitosamente!`)
+        setSuccess(`区域 "${newLocationName}" 创建成功!`)
         setTimeout(() => setSuccess(null), 3000)
       } else {
-        setCreateError('No se pudo crear la ubicación - puede que ya exista')
+        setCreateError('无法创建区域，可能已经存在')
       }
     } catch (err) {
-      setCreateError('Error al crear ubicación: ' + err.message)
+      setCreateError('创建区域失败：' + err.message)
     }
   }
 
   const handleDeleteLocation = async (locationId) => {
-    if (!confirm('¿Estás seguro de que deseas eliminar esta ubicación?')) return
+    if (!confirm('确定要删除这个区域吗？')) return
 
     try {
       const response = await fetch(`/api/locations/${locationId}`, {
@@ -110,11 +110,11 @@ function MesasPage() {
 
       if (response.ok) {
         fetchLocations()
-        setSuccess('Ubicación eliminada exitosamente!')
+        setSuccess('区域删除成功！')
         setTimeout(() => setSuccess(null), 3000)
       }
     } catch (err) {
-      setError('Error al eliminar ubicación: ' + err.message)
+      setError('删除区域失败：' + err.message)
     }
   }
 
@@ -148,9 +148,9 @@ function MesasPage() {
         setCreateError('No autorizado - por favor inicia sesión nuevamente')
         return
       }
-      if (!response.ok) throw new Error('Error al crear mesa')
+      if (!response.ok) throw new Error('创建餐桌失败')
 
-      setSuccess(`Mesa "${formData.codigo}" creada exitosamente!`)
+      setSuccess(`餐桌 "${formData.codigo}" 创建成功！`)
       setFormData({ codigo: '', capacidad: '', estado: 'disponible', locationId: '' })
       fetchMesas()
     } catch (err) {
@@ -173,7 +173,7 @@ function MesasPage() {
         fetchMesas()
       }
     } catch (err) {
-      setError('Error al actualizar estado: ' + err.message)
+      setError('更新状态失败：' + err.message)
     }
   }
 
@@ -190,7 +190,7 @@ function MesasPage() {
         fetchMesas()
       }
     } catch (err) {
-      setError('Error al actualizar ubicación: ' + err.message)
+      setError('更新区域失败：' + err.message)
     }
   }
 
@@ -198,9 +198,9 @@ function MesasPage() {
     return (
       <div className="centered-container">
         <div className="card">
-          <h2>Autenticación Requerida</h2>
-          <p>Debes iniciar sesión para ver esta página.</p>
-          <Link to="/login" className="btn-primary">Ir a Iniciar Sesión</Link>
+          <h2>需要登录</h2>
+          <p>请先登录后再查看此页面。</p>
+          <Link to="/login" className="btn-primary">去登录</Link>
         </div>
       </div>
     )
@@ -213,7 +213,7 @@ function MesasPage() {
     })
   }
 
-  if (loading) return <div className="loading">Cargando mesas</div>
+  if (loading) return <div className="loading">正在加载餐桌...</div>
   if (error) return <div className="alert alert-error">Error: {error}</div>
 
   // Calculate summary statistics
@@ -224,24 +224,24 @@ function MesasPage() {
 
   return (
     <div>
-      <h1>Mesas</h1>
+      <h1>餐桌</h1>
 
       {/* Summary Stats Section */}
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-label">Total Mesas</div>
+          <div className="stat-label">餐桌总数</div>
           <div className="stat-value stat-value-primary">{totalMesas}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">Disponibles</div>
+          <div className="stat-label">空闲餐桌</div>
           <div className="stat-value stat-value-success">{mesasDisponibles}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">Ocupadas</div>
+          <div className="stat-label">已占用</div>
           <div className="stat-value stat-value-danger">{mesasOcupadas}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">Reservadas</div>
+          <div className="stat-label">已预订</div>
           <div className="stat-value stat-value-warning">{mesasReservadas}</div>
         </div>
       </div>
@@ -252,31 +252,31 @@ function MesasPage() {
       {/* Location Management */}
       <div className="card">
         <div className="card-header">
-          <h2 className="card-title">Gestionar Ubicaciones</h2>
+          <h2 className="card-title">管理区域</h2>
         </div>
         <form onSubmit={handleCreateLocation} style={{ marginBottom: '20px' }}>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
             <div style={{ flex: 1 }}>
-              <label htmlFor="newLocation">Crear Nueva Ubicación:</label>
+              <label htmlFor="newLocation">创建新区域：</label>
               <input
                 id="newLocation"
                 type="text"
                 value={newLocationName}
                 onChange={(e) => setNewLocationName(e.target.value)}
-                placeholder="ej: Interior, Terraza, Barra"
+                placeholder="例如: 大厅, 露台, 包间"
               />
             </div>
-            <button type="submit" className="btn-primary">Crear Ubicación</button>
+            <button type="submit" className="btn-primary">创建区域</button>
           </div>
         </form>
 
         {loadingLocations ? (
-          <div className="loading">Cargando ubicaciones...</div>
+          <div className="loading">正在加载区域...</div>
         ) : (
           <div>
-            <strong>Ubicaciones Existentes:</strong>
+            <strong>现有区域：</strong>
             {locations.length === 0 ? (
-              <p className="text-muted">No hay ubicaciones creadas aún</p>
+              <p className="text-muted">还没有创建区域</p>
             ) : (
               <div style={{ display: 'flex', gap: '10px', marginTop: '10px', flexWrap: 'wrap' }}>
                 {locations.map(location => (
@@ -300,40 +300,40 @@ function MesasPage() {
       {/* Create Mesa */}
       <div className="card">
         <div className="card-header">
-          <h2 className="card-title">Crear Nueva Mesa</h2>
+          <h2 className="card-title">创建新餐桌</h2>
         </div>
 
         <form onSubmit={handleSubmit}>
           <div className="form-row">
             <div className="form-group">
-              <label htmlFor="codigo">Código</label>
+              <label htmlFor="codigo">编号</label>
               <input
                 id="codigo"
                 type="text"
                 name="codigo"
                 value={formData.codigo}
                 onChange={handleChange}
-                placeholder="ej: MESA-01"
+                placeholder="例如:A1"
                 required
               />
             </div>
 
             <div className="form-group">
-              <label htmlFor="capacidad">Capacidad</label>
+              <label htmlFor="capacidad">容量</label>
               <input
                 id="capacidad"
                 type="number"
                 name="capacidad"
                 value={formData.capacidad}
                 onChange={handleChange}
-                placeholder="ej: 4"
+                placeholder="例如: 4"
                 min="1"
                 required
               />
             </div>
 
             <div className="form-group">
-              <label htmlFor="estado">Estado</label>
+              <label htmlFor="estado">状态</label>
               <select
                 id="estado"
                 name="estado"
@@ -341,20 +341,20 @@ function MesasPage() {
                 onChange={handleChange}
                 required
               >
-                <option value="disponible">Libre</option>
-                <option value="ocupada">Ocupada</option>
+                <option value="disponible">空闲</option>
+                <option value="ocupada">已占用</option>
               </select>
             </div>
 
             <div className="form-group">
-              <label htmlFor="locationId">Ubicación</label>
+              <label htmlFor="locationId">区域</label>
               <select
                 id="locationId"
                 name="locationId"
                 value={formData.locationId}
                 onChange={handleChange}
               >
-                <option value="">-- Seleccionar Ubicación --</option>
+                <option value="">-- 选择区域 --</option>
                 {locations.map(location => (
                   <option key={location.id} value={location.id}>
                     {location.name}
@@ -364,27 +364,27 @@ function MesasPage() {
             </div>
           </div>
 
-          <button type="submit" className="btn-primary">Crear Mesa</button>
+          <button type="submit" className="btn-primary">创建餐桌</button>
         </form>
       </div>
 
       {/* Mesas List */}
       <div className="card">
         <div className="card-header">
-          <h2 className="card-title">Listado de Mesas</h2>
+          <h2 className="card-title">餐桌列表</h2>
         </div>
 
         {mesas.length === 0 ? (
-          <p className="text-muted">No hay mesas registradas</p>
+          <p className="text-muted">还没有登记餐桌</p>
         ) : (
           <table>
             <thead>
               <tr>
                 <th>ID</th>
-                <th>Código</th>
-                <th>Capacidad</th>
-                <th>Estado</th>
-                <th>Ubicación</th>
+                <th>编号</th>
+                <th>容量</th>
+                <th>状态</th>
+                <th>区域</th>
               </tr>
             </thead>
             <tbody>
@@ -392,7 +392,7 @@ function MesasPage() {
                 <tr key={mesa.id}>
                   <td>{mesa.id}</td>
                   <td><strong>{mesa.codigo}</strong></td>
-                  <td>{mesa.capacidad} personas</td>
+                  <td>{mesa.capacidad} 人</td>
                   <td>
                     <select
                       value={mesa.estado}
@@ -404,8 +404,8 @@ function MesasPage() {
                       }`}
                       style={{ border: 'none', fontWeight: 'bold', cursor: 'pointer' }}
                     >
-                      <option value="disponible">LIBRE</option>
-                      <option value="ocupada">OCUPADA</option>
+                      <option value="disponible">空闲</option>
+                      <option value="ocupada">已占用</option>
                     </select>
                   </td>
                   <td>
@@ -414,7 +414,7 @@ function MesasPage() {
                       onChange={(e) => handleLocationChange(mesa.id, e.target.value)}
                       style={{ padding: '4px 8px' }}
                     >
-                      <option value="">-- Sin Ubicación --</option>
+                      <option value="">-- 无区域 --</option>
                       {locations.map(location => (
                         <option key={location.id} value={location.id}>
                           {location.name}

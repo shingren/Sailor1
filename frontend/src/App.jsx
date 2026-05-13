@@ -28,7 +28,7 @@ function OpenLayout({ children }) {
     <div className="app-container">
       <nav className="navbar">
         <div className="navbar-content">
-          <div className="navbar-title">Sailor</div>
+          <div className="navbar-title">餐饮系统</div>
           <div className="navbar-user">
             <span className="navbar-email">dev-admin@sailor.local</span>
           </div>
