@@ -20,6 +20,18 @@ function ReservasPage() {
     cantidadPersonas: 1
   })
 
+  const getEstadoText = (estado) => {
+    const estadoMap = {
+      RESERVADO: '已预订',
+      CANCELADO: '已取消',
+      CONFIRMADO: '已确认',
+      PENDIENTE: '待确认',
+      COMPLETADO: '已完成'
+    }
+
+    return estadoMap[estado] || estado || '-'
+  }
+
   useEffect(() => {
     if (isAuthenticated) {
       fetchData()
@@ -29,6 +41,7 @@ function ReservasPage() {
   const fetchData = async () => {
     setLoading(true)
     setError('')
+
     try {
       const [reservasRes, mesasRes] = await Promise.all([
         fetch('/api/reservas', { headers: { 'Authorization': getAuthHeader() } }),
@@ -36,7 +49,7 @@ function ReservasPage() {
       ])
 
       if (!reservasRes.ok || !mesasRes.ok) {
-        setError('Error al cargar datos')
+        setError('加载数据失败')
         setLoading(false)
         return
       }
@@ -49,7 +62,7 @@ function ReservasPage() {
       setReservas(reservasData)
       setMesas(mesasData)
     } catch (err) {
-      setError('Error al cargar datos: ' + err.message)
+      setError('加载数据失败：' + err.message)
     } finally {
       setLoading(false)
     }
@@ -60,7 +73,7 @@ function ReservasPage() {
     setError('')
 
     if (!newReserva.mesaId) {
-      setError('Por favor selecciona una mesa')
+      setError('请选择餐桌')
       return
     }
 
@@ -83,13 +96,13 @@ function ReservasPage() {
       })
 
       if (response.status === 400) {
-        setError('Mesa ya reservada en ese horario')
+        setError('该餐桌在这个时间段已经被预订')
         return
       }
 
       if (!response.ok) {
         const errorText = await response.text()
-        setError('Error al crear reserva: ' + errorText)
+        setError('创建预订失败：' + errorText)
         return
       }
 
@@ -102,14 +115,20 @@ function ReservasPage() {
         horaFin: '',
         cantidadPersonas: 1
       })
+
       fetchData()
     } catch (err) {
-      setError('Error al crear reserva: ' + err.message)
+      setError('创建预订失败：' + err.message)
     }
   }
 
   const handleCancelar = async (id) => {
     setError('')
+
+    if (!window.confirm('确定要取消这个预订吗？')) {
+      return
+    }
+
     try {
       const response = await fetch(`/api/reservas/${id}/cancelar`, {
         method: 'POST',
@@ -120,13 +139,13 @@ function ReservasPage() {
 
       if (!response.ok) {
         const errorText = await response.text()
-        setError('Error al cancelar reserva: ' + errorText)
+        setError('取消预订失败：' + errorText)
         return
       }
 
       fetchData()
     } catch (err) {
-      setError('Error al cancelar reserva: ' + err.message)
+      setError('取消预订失败：' + err.message)
     }
   }
 
@@ -134,9 +153,9 @@ function ReservasPage() {
     return (
       <div className="centered-container">
         <div className="card">
-          <h2>Reservas</h2>
-          <p>Debes iniciar sesión para ver esta página</p>
-          <Link to="/login" className="btn-primary">Ir a Iniciar Sesión</Link>
+          <h2>预订</h2>
+          <p>请先登录后再查看此页面</p>
+          <Link to="/login" className="btn-primary">去登录</Link>
         </div>
       </div>
     )
@@ -144,18 +163,18 @@ function ReservasPage() {
 
   return (
     <div>
-      <h1>Gestión de Reservas</h1>
+      <h1>预订管理</h1>
 
       {error && <div className="alert alert-error">{error}</div>}
 
       <div className="card">
         <div className="card-header">
-          <h2>Crear Reserva</h2>
+          <h2>创建预订</h2>
         </div>
 
         <form onSubmit={handleCreateReserva}>
           <label htmlFor="reserva-mesa">
-            Mesa:
+            餐桌：
           </label>
           <select
             id="reserva-mesa"
@@ -163,15 +182,16 @@ function ReservasPage() {
             onChange={(e) => setNewReserva({ ...newReserva, mesaId: e.target.value })}
             required
           >
-            <option value="">-- Seleccionar Mesa --</option>
+            <option value="">-- 选择餐桌 --</option>
             {mesas.map(mesa => (
               <option key={mesa.id} value={mesa.id}>
-                {mesa.codigo} (Capacidad: {mesa.capacidad})
+                {mesa.codigo}（容量：{mesa.capacidad}）
               </option>
             ))}
           </select>
+
           <label htmlFor="reserva-cliente">
-            Nombre del Cliente:
+            客户姓名：
           </label>
           <input
             id="reserva-cliente"
@@ -180,8 +200,9 @@ function ReservasPage() {
             onChange={(e) => setNewReserva({ ...newReserva, clienteNombre: e.target.value })}
             required
           />
+
           <label htmlFor="reserva-telefono">
-            Teléfono:
+            电话：
           </label>
           <input
             id="reserva-telefono"
@@ -189,8 +210,9 @@ function ReservasPage() {
             value={newReserva.clienteTelefono}
             onChange={(e) => setNewReserva({ ...newReserva, clienteTelefono: e.target.value })}
           />
+
           <label htmlFor="reserva-fecha">
-            Fecha:
+            日期：
           </label>
           <input
             id="reserva-fecha"
@@ -199,8 +221,9 @@ function ReservasPage() {
             onChange={(e) => setNewReserva({ ...newReserva, fecha: e.target.value })}
             required
           />
+
           <label htmlFor="reserva-hora-inicio">
-            Hora Inicio:
+            开始时间：
           </label>
           <input
             id="reserva-hora-inicio"
@@ -209,8 +232,9 @@ function ReservasPage() {
             onChange={(e) => setNewReserva({ ...newReserva, horaInicio: e.target.value })}
             required
           />
+
           <label htmlFor="reserva-hora-fin">
-            Hora Fin:
+            结束时间：
           </label>
           <input
             id="reserva-hora-fin"
@@ -219,8 +243,9 @@ function ReservasPage() {
             onChange={(e) => setNewReserva({ ...newReserva, horaFin: e.target.value })}
             required
           />
+
           <label htmlFor="reserva-personas">
-            Personas:
+            人数：
           </label>
           <input
             id="reserva-personas"
@@ -230,36 +255,40 @@ function ReservasPage() {
             onChange={(e) => setNewReserva({ ...newReserva, cantidadPersonas: parseInt(e.target.value) })}
             required
           />
-          <button type="submit" className="btn-primary">Crear Reserva</button>
+
+          <button type="submit" className="btn-primary">
+            创建预订
+          </button>
         </form>
       </div>
 
       <div className="card">
         <div className="card-header">
-          <h2>Listado de Reservas</h2>
+          <h2>预订列表</h2>
         </div>
 
         {loading ? (
-          <div className="loading">Cargando</div>
+          <div className="loading">正在加载...</div>
         ) : (
           <table>
             <thead>
               <tr>
                 <th>ID</th>
-                <th>Mesa</th>
-                <th>Cliente</th>
-                <th>Teléfono</th>
-                <th>Fecha</th>
-                <th>Hora</th>
-                <th>Personas</th>
-                <th>Estado</th>
-                <th>Acciones</th>
+                <th>餐桌</th>
+                <th>客户</th>
+                <th>电话</th>
+                <th>日期</th>
+                <th>时间</th>
+                <th>人数</th>
+                <th>状态</th>
+                <th>操作</th>
               </tr>
             </thead>
+
             <tbody>
               {reservas.length === 0 ? (
                 <tr>
-                  <td colSpan="9">No se encontraron reservas</td>
+                  <td colSpan="9">未找到预订</td>
                 </tr>
               ) : (
                 reservas.map(reserva => (
@@ -277,12 +306,17 @@ function ReservasPage() {
                         reserva.estado === 'CANCELADO' ? 'badge-red' :
                         'badge-gray'
                       }`}>
-                        {reserva.estado}
+                        {getEstadoText(reserva.estado)}
                       </span>
                     </td>
                     <td>
                       {reserva.estado === 'RESERVADO' ? (
-                        <button onClick={() => handleCancelar(reserva.id)} className="btn-danger btn-small">Cancelar</button>
+                        <button
+                          onClick={() => handleCancelar(reserva.id)}
+                          className="btn-danger btn-small"
+                        >
+                          取消
+                        </button>
                       ) : (
                         <span>-</span>
                       )}

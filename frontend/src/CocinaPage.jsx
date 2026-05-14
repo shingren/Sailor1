@@ -10,6 +10,30 @@ function CocinaPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
+  const getEstacionText = (estacion) => {
+    const estacionMap = {
+      HOT: '热菜',
+      COLD: '冷菜',
+      PASTRY: '主食'
+    }
+
+    return estacionMap[estacion] || estacion || '热菜'
+  }
+
+  const getEstadoText = (estado) => {
+    const estadoMap = {
+      PENDIENTE: '待处理',
+      PREPARACION: '制作中',
+      EN_PREPARACION: '制作中',
+      LISTO: '已完成',
+      ENTREGADO: '已上菜',
+      FACTURADO: '已结账',
+      CANCELADO: '已取消'
+    }
+
+    return estadoMap[estado] || estado || '-'
+  }
+
   useEffect(() => {
     if (!isAuthenticated) return
 
@@ -34,13 +58,13 @@ function CocinaPage() {
       })
 
       if (response.status === 401) {
-        setError('No autorizado - por favor inicia sesión nuevamente')
+        setError('未授权，请重新登录')
         setLoading(false)
         return
       }
 
       if (!response.ok) {
-        setError('Error al cargar items de cocina')
+        setError('加载后厨菜品失败')
         setLoading(false)
         return
       }
@@ -48,7 +72,7 @@ function CocinaPage() {
       const data = await response.json()
       setItems(data)
     } catch (err) {
-      setError('Error al cargar items: ' + err.message)
+      setError('加载菜品失败：' + err.message)
     } finally {
       setLoading(false)
     }
@@ -66,18 +90,18 @@ function CocinaPage() {
       })
 
       if (response.status === 401) {
-        setError('No autorizado - por favor inicia sesión nuevamente')
+        setError('未授权，请重新登录')
         return
       }
 
       if (!response.ok) {
-        setError('Error al iniciar preparación')
+        setError('开始制作失败')
         return
       }
 
       fetchItemsByStation(selectedStation)
     } catch (err) {
-      setError('Error al iniciar preparación: ' + err.message)
+      setError('开始制作失败：' + err.message)
     }
   }
 
@@ -93,18 +117,18 @@ function CocinaPage() {
       })
 
       if (response.status === 401) {
-        setError('No autorizado - por favor inicia sesión nuevamente')
+        setError('未授权，请重新登录')
         return
       }
 
       if (!response.ok) {
-        setError('Error al marcar item como listo')
+        setError('标记为完成失败')
         return
       }
 
       fetchItemsByStation(selectedStation)
     } catch (err) {
-      setError('Error al marcar listo: ' + err.message)
+      setError('标记完成失败：' + err.message)
     }
   }
 
@@ -113,6 +137,7 @@ function CocinaPage() {
       case 'PENDIENTE':
         return 'badge-yellow'
       case 'PREPARACION':
+      case 'EN_PREPARACION':
         return 'badge-blue'
       case 'LISTO':
         return 'badge-green'
@@ -128,24 +153,28 @@ function CocinaPage() {
           onClick={() => iniciarItem(item.itemId)}
           className="btn-primary btn-small"
         >
-          Iniciar
+          开始制作
         </button>
       )
     }
 
-    if (item.estado === 'PREPARACION') {
+    if (item.estado === 'PREPARACION' || item.estado === 'EN_PREPARACION') {
       return (
         <button
           onClick={() => marcarListo(item.itemId)}
           className="btn-success btn-small"
         >
-          Listo
+          标记完成
         </button>
       )
     }
 
     if (item.estado === 'LISTO') {
-      return <span style={{ color: '#059669', fontWeight: 'bold' }}>Esperando entrega</span>
+      return (
+        <span style={{ color: '#059669', fontWeight: 'bold' }}>
+          等待上菜
+        </span>
+      )
     }
 
     return <span>-</span>
@@ -155,9 +184,9 @@ function CocinaPage() {
     return (
       <div className="centered-container">
         <div className="card">
-          <h2>Cocina</h2>
-          <p>Debes iniciar sesión para ver esta página</p>
-          <Link to="/login" className="btn-primary">Ir a Iniciar Sesión</Link>
+          <h2>后厨</h2>
+          <p>请先登录后再查看此页面</p>
+          <Link to="/login" className="btn-primary">去登录</Link>
         </div>
       </div>
     )
@@ -165,16 +194,17 @@ function CocinaPage() {
 
   return (
     <div>
-      <h1>Cocina - Panel por Estación</h1>
+      <h1>后厨 - 工位面板</h1>
+
       <p className="text-muted" style={{ fontSize: '0.9rem' }}>
-        Actualización automática cada 10 segundos
+        每 10 秒自动刷新一次
       </p>
 
       {error && <div className="alert alert-error">{error}</div>}
 
       <div className="card">
         <div className="card-header">
-          <h2>Seleccionar estación</h2>
+          <h2>选择制作工位</h2>
         </div>
 
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
@@ -185,7 +215,7 @@ function CocinaPage() {
               onClick={() => setSelectedStation(station)}
               className={selectedStation === station ? 'btn-primary' : 'btn-secondary'}
             >
-              {station}
+              {getEstacionText(station)}
             </button>
           ))}
         </div>
@@ -193,13 +223,13 @@ function CocinaPage() {
 
       <div className="card">
         <div className="card-header">
-          <h2>Items de {selectedStation}</h2>
+          <h2>{getEstacionText(selectedStation)}工位菜品</h2>
         </div>
 
         {loading ? (
-          <div className="loading">Cargando</div>
+          <div className="loading">正在加载...</div>
         ) : items.length === 0 ? (
-          <p className="text-muted">No hay items para esta estación</p>
+          <p className="text-muted">当前工位暂无菜品</p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
             {items.map((item) => (
@@ -223,28 +253,39 @@ function CocinaPage() {
                   }}
                 >
                   <div>
-                    <strong style={{ fontSize: '1.1rem' }}>{item.productoNombre}</strong>
+                    <strong style={{ fontSize: '1.1rem' }}>
+                      {item.productoNombre}
+                    </strong>
+
                     <span style={{ marginLeft: '15px' }}>
-                      Mesa: <strong>{item.mesaCodigo}</strong>
+                      餐桌：<strong>{item.mesaCodigo}</strong>
                     </span>
+
                     <span style={{ marginLeft: '15px' }}>
-                      Cantidad: <strong>{item.cantidad}</strong>
+                      数量：<strong>{item.cantidad}</strong>
                     </span>
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <span className={`badge ${getEstadoBadgeClass(item.estado)}`}>
-                      {item.estado}
+                      {getEstadoText(item.estado)}
                     </span>
+
                     {renderActionButton(item)}
                   </div>
                 </div>
 
                 <div style={{ fontSize: '0.95rem', color: '#4b5563' }}>
-                  <div><strong>Pedido ID:</strong> {item.pedidoId}</div>
-                  <div><strong>Estación:</strong> {item.estacion}</div>
                   <div>
-                    <strong>Observaciones:</strong>{' '}
+                    <strong>订单 ID：</strong> {item.pedidoId}
+                  </div>
+
+                  <div>
+                    <strong>制作工位：</strong> {getEstacionText(item.estacion)}
+                  </div>
+
+                  <div>
+                    <strong>备注：</strong>{' '}
                     {item.observaciones && item.observaciones.trim() !== ''
                       ? item.observaciones
                       : '-'}
@@ -257,13 +298,14 @@ function CocinaPage() {
       </div>
 
       <div className="card">
-        <h3>Flujo de estados</h3>
+        <h3>状态流程</h3>
+
         <p>
-          <span className="badge badge-yellow">PENDIENTE</span>
+          <span className="badge badge-yellow">待处理</span>
           {' → '}
-          <span className="badge badge-blue">PREPARACION</span>
+          <span className="badge badge-blue">制作中</span>
           {' → '}
-          <span className="badge badge-green">LISTO</span>
+          <span className="badge badge-green">已完成</span>
         </p>
       </div>
     </div>

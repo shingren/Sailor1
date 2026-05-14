@@ -30,6 +30,34 @@ function PedidosPage() {
   const [currentQuantity, setCurrentQuantity] = useState(1)
   const [currentExtras, setCurrentExtras] = useState([])
 
+  const getEstadoText = (estado) => {
+    const estadoMap = {
+      PENDIENTE: '待处理',
+      PREPARACION: '制作中',
+      EN_PREPARACION: '制作中',
+      LISTO: '已完成',
+      ENTREGADO: '已上菜',
+      FACTURADO: '已结账',
+      CANCELADO: '已取消'
+    }
+
+    return estadoMap[estado] || estado || '-'
+  }
+
+  const getEstacionText = (estacion) => {
+    const estacionMap = {
+      HOT: '热菜',
+      COLD: '冷菜',
+      PASTRY: '主食'
+    }
+
+    return estacionMap[estacion] || estacion || '热菜'
+  }
+
+  const getCategoryText = (category) => {
+    return category === 'TODOS' ? '全部' : category
+  }
+
   useEffect(() => {
     if (isAuthenticated) {
       fetchPedidos()
@@ -60,19 +88,19 @@ function PedidosPage() {
       })
 
       if (response.status === 401) {
-        setError('No autorizado - por favor inicia sesión nuevamente')
+        setError('未授权，请重新登录')
         return
       }
 
       if (!response.ok) {
-        setError('Error al cargar pedidos')
+        setError('加载订单失败')
         return
       }
 
       const data = await response.json()
       setPedidos(data)
     } catch (err) {
-      setError('Error al cargar pedidos: ' + err.message)
+      setError('加载订单失败：' + err.message)
     } finally {
       setLoading(false)
     }
@@ -90,7 +118,7 @@ function PedidosPage() {
         setMesas(data)
       }
     } catch (err) {
-      console.error('Error al cargar mesas:', err)
+      console.error('加载餐桌失败：', err)
     } finally {
       setLoadingMesas(false)
     }
@@ -108,7 +136,7 @@ function PedidosPage() {
         setProductos(data)
       }
     } catch (err) {
-      console.error('Error al cargar productos:', err)
+      console.error('加载商品失败：', err)
     } finally {
       setLoadingProductos(false)
     }
@@ -125,7 +153,7 @@ function PedidosPage() {
         setRecetas(data)
       }
     } catch (err) {
-      console.error('Error al cargar recetas:', err)
+      console.error('加载配方失败：', err)
     }
   }
 
@@ -141,7 +169,7 @@ function PedidosPage() {
         setItemsListos(data)
       }
     } catch (err) {
-      console.error('Error al cargar items listos:', err)
+      console.error('加载待上菜品失败：', err)
     } finally {
       setLoadingListos(false)
     }
@@ -155,14 +183,14 @@ function PedidosPage() {
       })
 
       if (!response.ok) {
-        setError('Error al marcar plato como servido')
+        setError('标记菜品为已上菜失败')
         return
       }
 
       fetchItemsListos()
       fetchPedidos()
     } catch (err) {
-      setError('Error al marcar plato como servido: ' + err.message)
+      setError('标记菜品为已上菜失败：' + err.message)
     }
   }
 
@@ -173,14 +201,14 @@ function PedidosPage() {
       })
 
       if (!response.ok) {
-        alert('Error al generar tickets de cocina')
+        alert('生成后厨小票失败')
         return
       }
 
       const tickets = await response.json()
 
       if (!tickets || tickets.length === 0) {
-        alert('No hay tickets para imprimir')
+        alert('没有可打印的小票')
         return
       }
 
@@ -188,14 +216,14 @@ function PedidosPage() {
         const printWindow = window.open('', '', 'width=400,height=600')
 
         if (!printWindow) {
-          alert('El navegador bloqueó la ventana de impresión. Permite popups para localhost.')
+          alert('浏览器阻止了打印窗口，请允许 localhost 弹出窗口。')
           return
         }
 
         printWindow.document.write(`
           <html>
             <head>
-              <title>Ticket Cocina</title>
+              <title>后厨小票</title>
               <style>
                 body {
                   font-family: monospace;
@@ -218,7 +246,7 @@ function PedidosPage() {
         }, 500 + index * 800)
       })
     } catch (err) {
-      alert('Error: ' + err.message)
+      alert('错误：' + err.message)
     }
   }
 
@@ -229,7 +257,7 @@ function PedidosPage() {
       })
 
       if (!response.ok) {
-        alert('Error al generar ticket del cliente')
+        alert('生成顾客小票失败')
         return
       }
 
@@ -237,14 +265,14 @@ function PedidosPage() {
       const printWindow = window.open('', '', 'width=400,height=600')
 
       if (!printWindow) {
-        alert('El navegador bloqueó la ventana de impresión. Permite popups para localhost.')
+        alert('浏览器阻止了打印窗口，请允许 localhost 弹出窗口。')
         return
       }
 
       printWindow.document.write(`
         <html>
           <head>
-            <title>Ticket Cliente</title>
+            <title>顾客小票</title>
             <style>
               body {
                 font-family: monospace;
@@ -272,7 +300,7 @@ function PedidosPage() {
         printWindow.close()
       }, 300)
     } catch (err) {
-      alert('Error: ' + err.message)
+      alert('错误：' + err.message)
     }
   }
 
@@ -410,7 +438,7 @@ function PedidosPage() {
 
   const getProductName = (productoId) => {
     const producto = productos.find(p => p.id === productoId)
-    return producto?.nombre || `Producto ${productoId}`
+    return producto?.nombre || `商品 ${productoId}`
   }
 
   const handleSubmit = async (e) => {
@@ -418,19 +446,19 @@ function PedidosPage() {
     setError('')
 
     if (!formData.mesaId) {
-      setError('Por favor selecciona una mesa')
+      setError('请选择餐桌')
       return
     }
 
     if (formData.items.length === 0) {
-      setError('Debes agregar al menos un producto al pedido')
+      setError('请至少添加一个商品到订单')
       return
     }
 
     const hasInvalidItems = formData.items.some(item => !item.productoId || item.cantidad < 1)
 
     if (hasInvalidItems) {
-      setError('Todos los ítems deben tener un producto y cantidad >= 1')
+      setError('所有商品都必须有商品名称，并且数量不能小于 1')
       return
     }
 
@@ -457,12 +485,12 @@ function PedidosPage() {
       })
 
       if (response.status === 401) {
-        setError('No autorizado - por favor inicia sesión nuevamente')
+        setError('未授权，请重新登录')
         return
       }
 
       if (!response.ok) {
-        setError('Error al crear pedido')
+        setError('创建订单失败')
         return
       }
 
@@ -483,7 +511,7 @@ function PedidosPage() {
 
       imprimirTicket(data.id)
     } catch (err) {
-      setError('Error al crear pedido: ' + err.message)
+      setError('创建订单失败：' + err.message)
     }
   }
 
@@ -491,9 +519,9 @@ function PedidosPage() {
     return (
       <div className="centered-container">
         <div className="card">
-          <h2>Pedidos</h2>
-          <p>Debes iniciar sesión para ver esta página</p>
-          <Link to="/login" className="btn-primary">Ir a Iniciar Sesión</Link>
+          <h2>订单</h2>
+          <p>请先登录后再查看此页面</p>
+          <Link to="/login" className="btn-primary">去登录</Link>
         </div>
       </div>
     )
@@ -508,17 +536,17 @@ function PedidosPage() {
 
   return (
     <div>
-      <h1>Pedidos</h1>
+      <h1>订单</h1>
 
       <div className="card" style={{ border: '2px solid #10b981', backgroundColor: '#ecfdf5' }}>
         <div className="card-header">
-          <h2 className="card-title">Platos listos para servir</h2>
+          <h2 className="card-title">待上菜品</h2>
         </div>
 
         {loadingListos ? (
-          <div className="loading">Cargando avisos...</div>
+          <div className="loading">正在加载提醒...</div>
         ) : itemsListos.length === 0 ? (
-          <p>No hay platos listos para servir</p>
+          <p>暂无待上菜品</p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {itemsListos.map(item => (
@@ -540,15 +568,15 @@ function PedidosPage() {
                   }}
                 >
                   <div>
-                    <strong>Mesa {item.mesaCodigo}</strong> - {item.productoNombre} x{item.cantidad}
+                    <strong>餐桌 {item.mesaCodigo}</strong> - {item.productoNombre} x{item.cantidad}
 
                     <div style={{ marginTop: '6px', fontSize: '0.9rem', color: '#065f46' }}>
-                      Estación: {item.estacion} · Estado: {item.estado}
+                      制作工位：{getEstacionText(item.estacion)} · 状态：{getEstadoText(item.estado)}
                     </div>
 
                     {item.observaciones && item.observaciones.trim() !== '' && (
                       <div style={{ marginTop: '6px', fontSize: '0.9rem', color: '#4b5563' }}>
-                        Observaciones: {item.observaciones}
+                        备注：{item.observaciones}
                       </div>
                     )}
                   </div>
@@ -559,7 +587,7 @@ function PedidosPage() {
                     className="btn-success btn-small"
                     style={{ whiteSpace: 'nowrap' }}
                   >
-                    Servido
+                    已上菜
                   </button>
                 </div>
               </div>
@@ -570,19 +598,19 @@ function PedidosPage() {
 
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-label">Total de Pedidos</div>
+          <div className="stat-label">订单总数</div>
           <div className="stat-value stat-value-primary">{totalPedidos}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">Pendientes</div>
+          <div className="stat-label">待处理</div>
           <div className="stat-value stat-value-warning">{pedidosPendientes}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">En Preparación</div>
+          <div className="stat-label">制作中</div>
           <div className="stat-value stat-value-primary">{pedidosEnPreparacion}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">Listos</div>
+          <div className="stat-label">已完成</div>
           <div className="stat-value stat-value-success">{pedidosListos}</div>
         </div>
       </div>
@@ -591,59 +619,59 @@ function PedidosPage() {
 
       <div className="card">
         <div className="card-header">
-          <h2 className="card-title">Pedidos Activos</h2>
+          <h2 className="card-title">活跃订单</h2>
         </div>
 
         {loading ? (
-          <div className="loading">Cargando</div>
+          <div className="loading">正在加载...</div>
         ) : (
           <table>
             <thead>
               <tr>
                 <th>ID</th>
-                <th>Mesa</th>
-                <th>Estado</th>
-                <th>Tipo</th>
-                <th>Fecha</th>
-                <th>Ítems</th>
-                <th>Acciones</th>
+                <th>餐桌</th>
+                <th>状态</th>
+                <th>类型</th>
+                <th>时间</th>
+                <th>商品数量</th>
+                <th>操作</th>
               </tr>
             </thead>
             <tbody>
               {pedidos.length === 0 ? (
                 <tr>
-                  <td colSpan="7">No se encontraron pedidos</td>
+                  <td colSpan="7">没有找到订单</td>
                 </tr>
               ) : (
                 pedidos.map(pedido => (
                   <tr key={pedido.id}>
                     <td>{pedido.id}</td>
-                    <td>{pedido.mesaCodigo} (ID: {pedido.mesaId})</td>
+                    <td>{pedido.mesaCodigo}（ID：{pedido.mesaId}）</td>
                     <td>
                       <span className={`badge ${
                         pedido.estado === 'PENDIENTE' ? 'badge-yellow' :
-                        pedido.estado === 'PREPARACION' ? 'badge-blue' :
+                        pedido.estado === 'PREPARACION' || pedido.estado === 'EN_PREPARACION' ? 'badge-blue' :
                         pedido.estado === 'LISTO' ? 'badge-green' :
                         pedido.estado === 'ENTREGADO' ? 'badge-green' :
                         'badge-gray'
                       }`}>
-                        {pedido.estado}
+                        {getEstadoText(pedido.estado)}
                       </span>
                     </td>
                     <td>
                       <strong style={{ color: pedido.paraLlevar ? '#dc2626' : '#374151' }}>
-                        {pedido.paraLlevar ? '打包 / PARA LLEVAR' : '堂食'}
+                        {pedido.paraLlevar ? '打包' : '堂食'}
                       </strong>
                     </td>
                     <td>{pedido.fechaHora ? new Date(pedido.fechaHora).toLocaleString() : '-'}</td>
-                    <td>{pedido.items?.length || 0} ítems</td>
+                    <td>{pedido.items?.length || 0} 件商品</td>
                     <td>
                       <button
                         type="button"
                         onClick={() => imprimirTicket(pedido.id)}
                         className="btn-secondary btn-small"
                       >
-                        🖨 Ticket Cocina
+                        后厨小票
                       </button>
 
                       <button
@@ -652,7 +680,7 @@ function PedidosPage() {
                         className="btn-secondary btn-small"
                         style={{ marginLeft: '8px' }}
                       >
-                        🧾 Ticket Cliente
+                        顾客小票
                       </button>
                     </td>
                   </tr>
@@ -665,17 +693,17 @@ function PedidosPage() {
 
       <div className="card">
         <div className="card-header">
-          <h2 className="card-title">Crear Nuevo Pedido - POS</h2>
+          <h2 className="card-title">创建新订单 - POS</h2>
         </div>
 
         {loadingMesas || loadingProductos ? (
-          <div className="loading">Cargando</div>
+          <div className="loading">正在加载...</div>
         ) : (
           <form onSubmit={handleSubmit}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '15px', marginBottom: '20px' }}>
               <div>
                 <label htmlFor="mesaId" style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>
-                  Mesa:
+                  餐桌：
                 </label>
                 <select
                   id="mesaId"
@@ -685,10 +713,10 @@ function PedidosPage() {
                   required
                   style={{ padding: '12px', fontSize: '1rem', marginTop: '5px' }}
                 >
-                  <option value="">-- Seleccionar Mesa --</option>
+                  <option value="">-- 选择餐桌 --</option>
                   {mesas.map(mesa => (
                     <option key={mesa.id} value={mesa.id}>
-                      {mesa.codigo} (Cap: {mesa.capacidad})
+                      {mesa.codigo}（容量：{mesa.capacidad}）
                     </option>
                   ))}
                 </select>
@@ -696,7 +724,7 @@ function PedidosPage() {
 
               <div>
                 <label htmlFor="observaciones" style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>
-                  Observaciones:
+                  备注：
                 </label>
                 <textarea
                   id="observaciones"
@@ -705,32 +733,41 @@ function PedidosPage() {
                   onChange={handleInputChange}
                   rows="2"
                   style={{ padding: '8px', fontSize: '1rem', marginTop: '5px' }}
-                  placeholder="Notas especiales del pedido..."
+                  placeholder="订单特殊备注..."
                 />
 
+              <div style={{ marginTop: '12px' }}>
                 <label
                   style={{
-                    display: 'flex',
+                    display: 'inline-flex',
                     alignItems: 'center',
                     gap: '8px',
-                    marginTop: '12px',
                     fontSize: '1rem',
-                    fontWeight: 'bold'
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap'
                   }}
                 >
                   <input
                     type="checkbox"
                     checked={formData.paraLlevar}
                     onChange={handleParaLlevarChange}
+                    style={{
+                      width: '18px',
+                      height: '18px',
+                      margin: 0,
+                      cursor: 'pointer'
+                    }}
                   />
-                  Para llevar / 打包带走
+                  <span>打包带走</span>
                 </label>
+              </div>
               </div>
             </div>
 
             <div style={{ marginBottom: '20px' }}>
               <strong style={{ fontSize: '1.1rem', display: 'block', marginBottom: '10px' }}>
-                Categorías:
+                分类：
               </strong>
 
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
@@ -751,7 +788,7 @@ function PedidosPage() {
                       transition: 'all 0.2s'
                     }}
                   >
-                    {category}
+                    {getCategoryText(category)}
                   </button>
                 ))}
               </div>
@@ -760,7 +797,7 @@ function PedidosPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px', marginBottom: '20px' }}>
               <div>
                 <strong style={{ fontSize: '1.1rem', display: 'block', marginBottom: '10px' }}>
-                  Productos:
+                  商品：
                 </strong>
 
                 <div
@@ -801,7 +838,7 @@ function PedidosPage() {
                       </div>
 
                       <div style={{ fontSize: '0.85rem', color: '#6b7280', marginTop: '5px' }}>
-                        Station: {producto.estacion || 'HOT'}
+                        制作工位：{getEstacionText(producto.estacion)}
                       </div>
 
                       {producto.descripcion && (
@@ -816,7 +853,7 @@ function PedidosPage() {
 
               <div style={{ border: '2px solid #e5e7eb', borderRadius: '8px', padding: '15px', backgroundColor: '#f9fafb' }}>
                 <strong style={{ fontSize: '1.1rem', display: 'block', marginBottom: '10px' }}>
-                  Producto Seleccionado:
+                  已选商品：
                 </strong>
 
                 {selectedProductId ? (
@@ -832,7 +869,7 @@ function PedidosPage() {
 
                     <div style={{ marginBottom: '15px' }}>
                       <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px' }}>
-                        Cantidad:
+                        数量：
                       </label>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -879,7 +916,7 @@ function PedidosPage() {
                     {getExtrasForProduct(selectedProductId).length > 0 && (
                       <div style={{ marginBottom: '15px' }}>
                         <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px' }}>
-                          Extras:
+                          加料：
                         </label>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -956,12 +993,12 @@ function PedidosPage() {
                       className="btn-success"
                       style={{ width: '100%', padding: '12px', fontSize: '1.1rem', fontWeight: 'bold' }}
                     >
-                      Agregar al Pedido
+                      加入订单
                     </button>
                   </>
                 ) : (
                   <div style={{ textAlign: 'center', color: '#9ca3af', padding: '20px' }}>
-                    Selecciona un producto para continuar
+                    请选择一个商品继续
                   </div>
                 )}
               </div>
@@ -969,16 +1006,16 @@ function PedidosPage() {
 
             <div style={{ border: '2px solid #3b82f6', borderRadius: '8px', padding: '15px', backgroundColor: '#eff6ff', marginBottom: '20px' }}>
               <strong style={{ fontSize: '1.2rem', display: 'block', marginBottom: '10px', color: '#1e40af' }}>
-                Resumen del Pedido:
+                订单摘要：
               </strong>
 
               <div style={{ marginBottom: '10px', fontWeight: 'bold' }}>
-                Tipo: {formData.paraLlevar ? '打包 / PARA LLEVAR' : '堂食'}
+                类型：{formData.paraLlevar ? '打包' : '堂食'}
               </div>
 
               {formData.items.length === 0 ? (
                 <div style={{ textAlign: 'center', color: '#6b7280', padding: '20px' }}>
-                  El carrito está vacío. Agrega productos para continuar.
+                  购物车为空，请添加商品继续。
                 </div>
               ) : (
                 <>
@@ -1010,7 +1047,7 @@ function PedidosPage() {
                               className="btn-danger btn-small"
                               style={{ padding: '5px 10px' }}
                             >
-                              Eliminar
+                              删除
                             </button>
                           </div>
                         </div>
@@ -1030,7 +1067,7 @@ function PedidosPage() {
 
                   <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '2px solid #3b82f6' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '1.3rem', fontWeight: 'bold' }}>
-                      <span>Total:</span>
+                      <span>合计：</span>
                       <span style={{ color: '#059669' }}>${calculateCartTotal().toFixed(2)}</span>
                     </div>
                   </div>
@@ -1045,7 +1082,7 @@ function PedidosPage() {
                 style={{ padding: '18px', fontSize: '1.3rem', fontWeight: 'bold' }}
                 disabled={formData.items.length === 0 || !formData.mesaId}
               >
-                Crear Pedido
+                创建订单
               </button>
 
               <button
@@ -1054,7 +1091,7 @@ function PedidosPage() {
                 className="btn-secondary"
                 style={{ padding: '18px', fontSize: '1.3rem', fontWeight: 'bold' }}
               >
-                Limpiar Pedido
+                清空订单
               </button>
             </div>
           </form>

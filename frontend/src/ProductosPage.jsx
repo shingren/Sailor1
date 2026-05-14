@@ -19,6 +19,16 @@ function ProductosPage() {
   const [precioError, setPrecioError] = useState(null)
   const { isAuthenticated, getAuthHeader, hasRole } = useAuth()
 
+  const getEstacionText = (estacion) => {
+    const estacionMap = {
+      HOT: '热菜',
+      COLD: '冷菜',
+      PASTRY: '主食'
+    }
+
+    return estacionMap[estacion] || estacion || '热菜'
+  }
+
   useEffect(() => {
     if (!isAuthenticated) {
       return
@@ -36,10 +46,10 @@ function ProductosPage() {
         }
       })
       if (response.status === 401) {
-        setError('No autorizado - por favor inicia sesión nuevamente')
+        setError('未授权，请重新登录')
         return
       }
-      if (!response.ok) throw new Error('Error al cargar productos')
+      if (!response.ok) throw new Error('加载商品失败')
       const data = await response.json()
       setProductos(data)
     } catch (err) {
@@ -70,10 +80,10 @@ function ProductosPage() {
       })
 
       if (response.status === 401) {
-        setCreateError('No autorizado - por favor inicia sesión nuevamente')
+        setCreateError('未授权，请重新登录')
         return
       }
-      if (!response.ok) throw new Error('Error al crear producto')
+      if (!response.ok) throw new Error('创建商品失败')
 
       setFormData({
         nombre: '',
@@ -108,10 +118,10 @@ function ProductosPage() {
       if (response.ok) {
         fetchProductos()
       } else {
-        setError('Error al cambiar estado del producto')
+        setError('修改商品状态失败')
       }
     } catch (err) {
-      setError('Error al cambiar estado del producto: ' + err.message)
+      setError('修改商品状态失败：' + err.message)
     }
   }
 
@@ -133,7 +143,7 @@ function ProductosPage() {
     const newPrecio = parseFloat(editingPrecioValue)
 
     if (isNaN(newPrecio) || newPrecio <= 0) {
-      setPrecioError('El precio debe ser un número mayor a 0')
+      setPrecioError('价格必须是大于 0 的数字')
       return
     }
 
@@ -148,18 +158,18 @@ function ProductosPage() {
       })
 
       if (response.status === 401 || response.status === 403) {
-        setPrecioError('No autorizado para actualizar precios')
+        setPrecioError('没有权限修改价格')
         return
       }
 
       if (response.status === 400) {
         const errorData = await response.json()
-        setPrecioError(errorData.error || 'Precio inválido')
+        setPrecioError(errorData.error || '价格无效')
         return
       }
 
       if (!response.ok) {
-        setPrecioError('Error al actualizar precio')
+        setPrecioError('更新价格失败')
         return
       }
 
@@ -167,7 +177,7 @@ function ProductosPage() {
       setEditingPrecioValue('')
       fetchProductos()
     } catch (err) {
-      setPrecioError('Error al actualizar precio: ' + err.message)
+      setPrecioError('更新价格失败：' + err.message)
     }
   }
 
@@ -175,29 +185,29 @@ function ProductosPage() {
     return (
       <div className="centered-container">
         <div className="card">
-          <h2>Productos</h2>
-          <p>Debes iniciar sesión para ver esta página.</p>
-          <Link to="/login" className="btn-primary">Ir a Iniciar Sesión</Link>
+          <h2>商品</h2>
+          <p>请先登录后再查看此页面。</p>
+          <Link to="/login" className="btn-primary">去登录</Link>
         </div>
       </div>
     )
   }
 
-  if (loading) return <div className="loading">Cargando</div>
+  if (loading) return <div className="loading">正在加载...</div>
   if (error) return <div className="alert alert-error">{error}</div>
 
   return (
     <div>
-      <h1>Productos</h1>
+      <h1>商品</h1>
 
       <div className="card">
         <div className="card-header">
-          <h2>Crear Nuevo Producto</h2>
+          <h2>创建新商品</h2>
         </div>
         <form onSubmit={handleSubmit}>
           <div>
             <label htmlFor="nombre">
-              Nombre:
+              名称：
             </label>
             <input
               id="nombre"
@@ -211,7 +221,7 @@ function ProductosPage() {
 
           <div>
             <label htmlFor="categoria">
-              Categoría:
+              分类：
             </label>
             <input
               id="categoria"
@@ -224,7 +234,7 @@ function ProductosPage() {
 
           <div>
             <label htmlFor="precio">
-              Precio:
+              价格：
             </label>
             <input
               id="precio"
@@ -239,7 +249,7 @@ function ProductosPage() {
 
           <div>
             <label htmlFor="estacion">
-              Estación:
+              制作工位：
             </label>
             <select
               id="estacion"
@@ -247,33 +257,33 @@ function ProductosPage() {
               value={formData.estacion}
               onChange={handleChange}
             >
-              <option value="HOT">HOT</option>
-              <option value="COLD">COLD</option>
-              <option value="PASTRY">PASTRY</option>
+              <option value="HOT">热菜</option>
+              <option value="COLD">冷菜</option>
+              <option value="PASTRY">主食</option>
             </select>
           </div>
 
-          <button type="submit" className="btn-primary">Crear Producto</button>
+          <button type="submit" className="btn-primary">创建商品</button>
         </form>
         {createError && <div className="alert alert-error">{createError}</div>}
       </div>
 
       <div className="card">
         <div className="card-header">
-          <h2>Listado de Productos</h2>
+          <h2>商品列表</h2>
         </div>
         {productos.length === 0 ? (
-          <p>No se encontraron productos</p>
+          <p>没有找到商品</p>
         ) : (
           <table>
             <thead>
               <tr>
                 <th>ID</th>
-                <th>Nombre</th>
-                <th>Categoría</th>
-                <th>Estación</th>
-                <th>Precio</th>
-                <th>Activo</th>
+                <th>名称</th>
+                <th>分类</th>
+                <th>制作工位</th>
+                <th>价格</th>
+                <th>状态</th>
               </tr>
             </thead>
             <tbody>
@@ -282,7 +292,7 @@ function ProductosPage() {
                   <td>{producto.id}</td>
                   <td>{producto.nombre}</td>
                   <td>{producto.categoria || '-'}</td>
-                  <td>{producto.estacion || 'HOT'}</td>
+                  <td>{getEstacionText(producto.estacion)}</td>
                   <td>
                     {editingPrecioId === producto.id ? (
                       <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
@@ -297,14 +307,14 @@ function ProductosPage() {
                         <button
                           onClick={() => handleSavePrecio(producto.id)}
                           className="btn-success btn-small"
-                          title="Guardar precio"
+                          title="保存价格"
                         >
                           ✓
                         </button>
                         <button
                           onClick={handleCancelEditPrecio}
                           className="btn-secondary btn-small"
-                          title="Cancelar"
+                          title="取消"
                         >
                           ✗
                         </button>
@@ -316,7 +326,7 @@ function ProductosPage() {
                           <button
                             onClick={() => handleStartEditPrecio(producto)}
                             className="btn-secondary btn-small"
-                            title="Editar precio"
+                            title="编辑价格"
                             style={{ padding: '2px 8px', fontSize: '0.85em' }}
                           >
                             ✎
@@ -329,9 +339,9 @@ function ProductosPage() {
                     <button
                       onClick={() => handleToggleActive(producto.id)}
                       className={producto.activo ? 'btn-success btn-small' : 'btn-secondary btn-small'}
-                      title={producto.activo ? 'Desactivar producto' : 'Activar producto'}
+                      title={producto.activo ? '停用商品' : '启用商品'}
                     >
-                      {producto.activo ? '✓ Activo' : '✗ Inactivo'}
+                      {producto.activo ? '✓ 启用' : '✗ 停用'}
                     </button>
                   </td>
                 </tr>

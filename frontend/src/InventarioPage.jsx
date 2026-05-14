@@ -32,7 +32,7 @@ function InventarioPage() {
     extras: []
   })
 
-  // Estado para edición de insumos
+  // 原料编辑状态
   const [editingInsumoId, setEditingInsumoId] = useState(null)
   const [editFormData, setEditFormData] = useState({
     nombre: '',
@@ -40,12 +40,22 @@ function InventarioPage() {
     stockMinimo: 0
   })
 
-  // Estado para edición de recetas
+  // 配方编辑状态
   const [editingRecetaId, setEditingRecetaId] = useState(null)
   const [editRecetaData, setEditRecetaData] = useState({
     items: [],
     extras: []
   })
+
+  const getTipoMovimientoText = (tipo) => {
+    const tipoMap = {
+      COMPRA: '采购',
+      AJUSTE: '调整',
+      USO: '使用'
+    }
+
+    return tipoMap[tipo] || tipo || '-'
+  }
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -65,7 +75,7 @@ function InventarioPage() {
       ])
 
       if (!insumosRes.ok || !movimientosRes.ok || !recetasRes.ok || !productosRes.ok) {
-        setError('Error al cargar datos')
+        setError('加载数据失败')
         setLoading(false)
         return
       }
@@ -82,7 +92,7 @@ function InventarioPage() {
       setRecetas(recetasData)
       setProductos(productosData)
     } catch (err) {
-      setError('Error al cargar datos: ' + err.message)
+      setError('加载数据失败：' + err.message)
     } finally {
       setLoading(false)
     }
@@ -103,14 +113,14 @@ function InventarioPage() {
       })
 
       if (!response.ok) {
-        setError('Error al crear insumo')
+        setError('创建原料失败')
         return
       }
 
       setNewInsumo({ nombre: '', unidad: '', stockActual: 0, stockMinimo: 0 })
       fetchData()
     } catch (err) {
-      setError('Error al crear insumo: ' + err.message)
+      setError('创建原料失败：' + err.message)
     }
   }
 
@@ -148,7 +158,7 @@ function InventarioPage() {
       })
 
       if (!response.ok) {
-        setError('Error al actualizar insumo')
+        setError('更新原料失败')
         return
       }
 
@@ -156,7 +166,7 @@ function InventarioPage() {
       setEditFormData({ nombre: '', unidad: '', stockMinimo: 0 })
       fetchData()
     } catch (err) {
-      setError('Error al actualizar insumo: ' + err.message)
+      setError('更新原料失败：' + err.message)
     }
   }
 
@@ -165,7 +175,7 @@ function InventarioPage() {
     setError('')
 
     if (!newMovimiento.insumoId) {
-      setError('Por favor selecciona un insumo')
+      setError('请选择原料')
       return
     }
 
@@ -185,14 +195,14 @@ function InventarioPage() {
       })
 
       if (!response.ok) {
-        setError('Error al crear movimiento')
+        setError('登记库存变动失败')
         return
       }
 
       setNewMovimiento({ insumoId: '', cantidad: 0, tipo: 'COMPRA', descripcion: '' })
       fetchData()
     } catch (err) {
-      setError('Error al crear movimiento: ' + err.message)
+      setError('登记库存变动失败：' + err.message)
     }
   }
 
@@ -201,7 +211,7 @@ function InventarioPage() {
     setError('')
 
     if (!newReceta.productoId) {
-      setError('Por favor selecciona un producto')
+      setError('请选择商品')
       return
     }
 
@@ -229,14 +239,14 @@ function InventarioPage() {
 
       if (!response.ok) {
         const errorText = await response.text()
-        setError('Error al crear receta: ' + errorText)
+        setError('创建配方失败：' + errorText)
         return
       }
 
       setNewReceta({ productoId: '', items: [{ insumoId: '', cantidadNecesaria: 0 }], extras: [] })
       fetchData()
     } catch (err) {
-      setError('Error al crear receta: ' + err.message)
+      setError('创建配方失败：' + err.message)
     }
   }
 
@@ -280,7 +290,7 @@ function InventarioPage() {
     setNewReceta({ ...newReceta, extras: updated })
   }
 
-  // Funciones para editar recetas existentes
+  // 编辑现有配方
   const handleStartEditReceta = (receta) => {
     setEditingRecetaId(receta.id)
     setEditRecetaData({
@@ -307,7 +317,7 @@ function InventarioPage() {
     setError('')
 
     if (editRecetaData.items.length === 0) {
-      setError('La receta debe tener al menos un ingrediente')
+      setError('配方至少需要一个原料')
       return
     }
 
@@ -334,7 +344,7 @@ function InventarioPage() {
 
       if (!response.ok) {
         const errorText = await response.text()
-        setError('Error al actualizar receta: ' + errorText)
+        setError('更新配方失败：' + errorText)
         return
       }
 
@@ -342,7 +352,7 @@ function InventarioPage() {
       setEditRecetaData({ items: [], extras: [] })
       fetchData()
     } catch (err) {
-      setError('Error al actualizar receta: ' + err.message)
+      setError('更新配方失败：' + err.message)
     }
   }
 
@@ -390,9 +400,9 @@ function InventarioPage() {
     return (
       <div className="centered-container">
         <div className="card">
-          <h2>Inventario</h2>
-          <p>Debes iniciar sesión para ver esta página</p>
-          <Link to="/login" className="btn-primary">Ir a Iniciar Sesión</Link>
+          <h2>库存</h2>
+          <p>请先登录后再查看此页面</p>
+          <Link to="/login" className="btn-primary">去登录</Link>
         </div>
       </div>
     )
@@ -400,19 +410,19 @@ function InventarioPage() {
 
   return (
     <div>
-      <h1>Gestión de Inventario</h1>
+      <h1>库存管理</h1>
 
       {error && <div className="alert alert-error">{error}</div>}
 
       <div className="card">
         <div className="card-header">
-          <h2>Insumos</h2>
+          <h2>原料</h2>
         </div>
 
-        <h3>Crear Nuevo Insumo</h3>
+        <h3>创建新原料</h3>
         <form onSubmit={handleCreateInsumo}>
           <label htmlFor="insumo-nombre">
-            Nombre:
+            名称：
           </label>
           <input
             id="insumo-nombre"
@@ -421,19 +431,21 @@ function InventarioPage() {
             onChange={(e) => setNewInsumo({ ...newInsumo, nombre: e.target.value })}
             required
           />
+
           <label htmlFor="insumo-unidad">
-            Unidad:
+            单位：
           </label>
           <input
             id="insumo-unidad"
             type="text"
             value={newInsumo.unidad}
             onChange={(e) => setNewInsumo({ ...newInsumo, unidad: e.target.value })}
-            placeholder="g, ml, unidad"
+            placeholder="克、毫升、个"
             required
           />
+
           <label htmlFor="insumo-stock-actual">
-            Stock Actual:
+            当前库存：
           </label>
           <input
             id="insumo-stock-actual"
@@ -443,8 +455,9 @@ function InventarioPage() {
             onChange={(e) => setNewInsumo({ ...newInsumo, stockActual: parseFloat(e.target.value) })}
             required
           />
+
           <label htmlFor="insumo-stock-minimo">
-            Stock Mínimo:
+            最低库存：
           </label>
           <input
             id="insumo-stock-minimo"
@@ -454,28 +467,29 @@ function InventarioPage() {
             onChange={(e) => setNewInsumo({ ...newInsumo, stockMinimo: parseFloat(e.target.value) })}
             required
           />
-          <button type="submit" className="btn-primary">Crear Insumo</button>
+
+          <button type="submit" className="btn-primary">创建原料</button>
         </form>
 
-        <h3>Insumos Existentes</h3>
+        <h3>现有原料</h3>
         {loading ? (
-          <div className="loading">Cargando</div>
+          <div className="loading">正在加载...</div>
         ) : (
           <table>
             <thead>
               <tr>
                 <th>ID</th>
-                <th>Nombre</th>
-                <th>Unidad</th>
-                <th>Stock Actual</th>
-                <th>Stock Mínimo</th>
-                <th>Acciones</th>
+                <th>名称</th>
+                <th>单位</th>
+                <th>当前库存</th>
+                <th>最低库存</th>
+                <th>操作</th>
               </tr>
             </thead>
             <tbody>
               {insumos.length === 0 ? (
                 <tr>
-                  <td colSpan="6">No se encontraron insumos</td>
+                  <td colSpan="6">未找到原料</td>
                 </tr>
               ) : (
                 insumos.map(insumo => {
@@ -495,6 +509,7 @@ function InventarioPage() {
                           insumo.nombre
                         )}
                       </td>
+
                       <td>
                         {isEditing ? (
                           <input
@@ -507,10 +522,12 @@ function InventarioPage() {
                           insumo.unidad
                         )}
                       </td>
+
                       <td className={insumo.stockActual < insumo.stockMinimo ? 'low-stock' : ''}>
                         {insumo.stockActual}
                         {insumo.stockActual < insumo.stockMinimo && ' ⚠️'}
                       </td>
+
                       <td>
                         {isEditing ? (
                           <input
@@ -524,6 +541,7 @@ function InventarioPage() {
                           insumo.stockMinimo
                         )}
                       </td>
+
                       <td>
                         {isEditing ? (
                           <div style={{ display: 'flex', gap: '5px' }}>
@@ -531,13 +549,13 @@ function InventarioPage() {
                               onClick={() => handleSaveEdit(insumo.id)}
                               className="btn-success btn-small"
                             >
-                              Guardar
+                              保存
                             </button>
                             <button
                               onClick={handleCancelEdit}
                               className="btn-secondary btn-small"
                             >
-                              Cancelar
+                              取消
                             </button>
                           </div>
                         ) : (
@@ -545,7 +563,7 @@ function InventarioPage() {
                             onClick={() => handleEditInsumo(insumo)}
                             className="btn-primary btn-small"
                           >
-                            Editar
+                            编辑
                           </button>
                         )}
                       </td>
@@ -560,13 +578,13 @@ function InventarioPage() {
 
       <div className="card">
         <div className="card-header">
-          <h2>Movimientos de Inventario</h2>
+          <h2>库存变动记录</h2>
         </div>
 
-        <h3>Registrar Movimiento</h3>
+        <h3>登记库存变动</h3>
         <form onSubmit={handleCreateMovimiento}>
           <label htmlFor="movimiento-insumo">
-            Insumo:
+            原料：
           </label>
           <select
             id="movimiento-insumo"
@@ -574,15 +592,16 @@ function InventarioPage() {
             onChange={(e) => setNewMovimiento({ ...newMovimiento, insumoId: e.target.value })}
             required
           >
-            <option value="">-- Seleccionar Insumo --</option>
+            <option value="">-- 选择原料 --</option>
             {insumos.map(insumo => (
               <option key={insumo.id} value={insumo.id}>
-                {insumo.nombre} ({insumo.unidad})
+                {insumo.nombre}（{insumo.unidad}）
               </option>
             ))}
           </select>
+
           <label htmlFor="movimiento-cantidad">
-            Cantidad:
+            数量：
           </label>
           <input
             id="movimiento-cantidad"
@@ -592,60 +611,65 @@ function InventarioPage() {
             onChange={(e) => setNewMovimiento({ ...newMovimiento, cantidad: parseFloat(e.target.value) })}
             required
           />
+
           <label htmlFor="movimiento-tipo">
-            Tipo:
+            类型：
           </label>
           <select
             id="movimiento-tipo"
             value={newMovimiento.tipo}
             onChange={(e) => setNewMovimiento({ ...newMovimiento, tipo: e.target.value })}
           >
-            <option value="COMPRA">COMPRA</option>
-            <option value="AJUSTE">AJUSTE</option>
+            <option value="COMPRA">采购</option>
+            <option value="AJUSTE">调整</option>
           </select>
+
           <label htmlFor="movimiento-descripcion">
-            Descripción:
+            描述：
           </label>
           <input
             id="movimiento-descripcion"
             type="text"
             value={newMovimiento.descripcion}
             onChange={(e) => setNewMovimiento({ ...newMovimiento, descripcion: e.target.value })}
-            placeholder="Descripción opcional"
+            placeholder="可选描述"
           />
-          <button type="submit" className="btn-primary">Registrar Movimiento</button>
+
+          <button type="submit" className="btn-primary">登记变动</button>
         </form>
 
-        <h3>Movimientos Recientes</h3>
+        <h3>最近库存变动</h3>
         <table>
           <thead>
             <tr>
               <th>ID</th>
-              <th>Insumo</th>
-              <th>Cantidad</th>
-              <th>Tipo</th>
-              <th>Fecha</th>
-              <th>Descripción</th>
+              <th>原料</th>
+              <th>数量</th>
+              <th>类型</th>
+              <th>日期</th>
+              <th>描述</th>
             </tr>
           </thead>
           <tbody>
             {movimientos.length === 0 ? (
               <tr>
-                <td colSpan="6">No se encontraron movimientos</td>
+                <td colSpan="6">未找到库存变动记录</td>
               </tr>
             ) : (
               movimientos.slice().reverse().slice(0, 20).map(mov => (
                 <tr key={mov.id}>
                   <td>{mov.id}</td>
                   <td>{mov.insumoNombre}</td>
-                  <td style={{ color: mov.cantidad >= 0 ? 'green' : 'red', fontWeight: '500' }}>{mov.cantidad}</td>
+                  <td style={{ color: mov.cantidad >= 0 ? 'green' : 'red', fontWeight: '500' }}>
+                    {mov.cantidad}
+                  </td>
                   <td>
                     <span className={`badge ${
                       mov.tipo === 'COMPRA' ? 'badge-green' :
                       mov.tipo === 'AJUSTE' ? 'badge-blue' :
                       'badge-gray'
                     }`}>
-                      {mov.tipo}
+                      {getTipoMovimientoText(mov.tipo)}
                     </span>
                   </td>
                   <td>{new Date(mov.fechaHora).toLocaleString()}</td>
@@ -659,13 +683,13 @@ function InventarioPage() {
 
       <div className="card">
         <div className="card-header">
-          <h2>Recetas</h2>
+          <h2>配方</h2>
         </div>
 
-        <h3>Crear Nueva Receta</h3>
+        <h3>创建新配方</h3>
         <form onSubmit={handleCreateReceta}>
           <label htmlFor="receta-producto">
-            Producto:
+            商品：
           </label>
           <select
             id="receta-producto"
@@ -673,7 +697,7 @@ function InventarioPage() {
             onChange={(e) => setNewReceta({ ...newReceta, productoId: e.target.value })}
             required
           >
-            <option value="">-- Seleccionar Producto --</option>
+            <option value="">-- 选择商品 --</option>
             {productos.map(producto => (
               <option key={producto.id} value={producto.id}>
                 {producto.nombre}
@@ -681,11 +705,11 @@ function InventarioPage() {
             ))}
           </select>
 
-          <h4>Ingredientes de la Receta:</h4>
+          <h4>配方原料：</h4>
           {newReceta.items.map((item, index) => (
             <div key={index} style={{ marginBottom: '10px', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}>
               <label htmlFor={`receta-insumo-${index}`}>
-                Insumo:
+                原料：
               </label>
               <select
                 id={`receta-insumo-${index}`}
@@ -693,15 +717,16 @@ function InventarioPage() {
                 onChange={(e) => updateRecetaItem(index, 'insumoId', e.target.value)}
                 required
               >
-                <option value="">-- Seleccionar Insumo --</option>
+                <option value="">-- 选择原料 --</option>
                 {insumos.map(insumo => (
                   <option key={insumo.id} value={insumo.id}>
-                    {insumo.nombre} ({insumo.unidad})
+                    {insumo.nombre}（{insumo.unidad}）
                   </option>
                 ))}
               </select>
+
               <label htmlFor={`receta-cantidad-${index}`}>
-                Cantidad Necesaria:
+                所需数量：
               </label>
               <input
                 id={`receta-cantidad-${index}`}
@@ -712,32 +737,42 @@ function InventarioPage() {
                 required
                 style={{ width: '100px' }}
               />
+
               {newReceta.items.length > 1 && (
-                <button type="button" onClick={() => removeRecetaItem(index)} className="btn-danger btn-small" style={{ marginLeft: '10px' }}>Eliminar</button>
+                <button
+                  type="button"
+                  onClick={() => removeRecetaItem(index)}
+                  className="btn-danger btn-small"
+                  style={{ marginLeft: '10px' }}
+                >
+                  删除
+                </button>
               )}
             </div>
           ))}
 
-          <button type="button" onClick={addRecetaItem} className="btn-secondary">Agregar Ingrediente</button>
+          <button type="button" onClick={addRecetaItem} className="btn-secondary">
+            添加原料
+          </button>
 
-          <h4 style={{ marginTop: '20px' }}>Extras (Opcional):</h4>
+          <h4 style={{ marginTop: '20px' }}>加料/附加项（可选）：</h4>
           {newReceta.extras.map((extra, index) => (
             <div key={index} style={{ marginBottom: '10px', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', backgroundColor: '#f9f9f9' }}>
               <label htmlFor={`extra-nombre-${index}`}>
-                Nombre del Extra:
+                加料名称：
               </label>
               <input
                 id={`extra-nombre-${index}`}
                 type="text"
                 value={extra.nombre}
                 onChange={(e) => updateRecetaExtra(index, 'nombre', e.target.value)}
-                placeholder="Ej: Queso extra, Shot extra"
+                placeholder="例如：加芝士、加料"
                 required
                 style={{ width: '200px', marginRight: '10px' }}
               />
 
               <label htmlFor={`extra-precio-${index}`}>
-                Precio:
+                价格：
               </label>
               <input
                 id={`extra-precio-${index}`}
@@ -750,7 +785,7 @@ function InventarioPage() {
               />
 
               <label htmlFor={`extra-insumo-${index}`}>
-                Insumo:
+                原料：
               </label>
               <select
                 id={`extra-insumo-${index}`}
@@ -759,16 +794,16 @@ function InventarioPage() {
                 required
                 style={{ marginRight: '10px' }}
               >
-                <option value="">-- Seleccionar Insumo --</option>
+                <option value="">-- 选择原料 --</option>
                 {insumos.map(insumo => (
                   <option key={insumo.id} value={insumo.id}>
-                    {insumo.nombre} ({insumo.unidad})
+                    {insumo.nombre}（{insumo.unidad}）
                   </option>
                 ))}
               </select>
 
               <label htmlFor={`extra-cantidad-${index}`}>
-                Cantidad del Insumo:
+                原料数量：
               </label>
               <input
                 id={`extra-cantidad-${index}`}
@@ -780,30 +815,40 @@ function InventarioPage() {
                 style={{ width: '100px', marginRight: '10px' }}
               />
 
-              <button type="button" onClick={() => removeRecetaExtra(index)} className="btn-danger btn-small">Eliminar Extra</button>
+              <button
+                type="button"
+                onClick={() => removeRecetaExtra(index)}
+                className="btn-danger btn-small"
+              >
+                删除加料
+              </button>
             </div>
           ))}
 
-          <button type="button" onClick={addRecetaExtra} className="btn-secondary">Agregar Extra</button>
+          <button type="button" onClick={addRecetaExtra} className="btn-secondary">
+            添加加料
+          </button>
           {' '}
-          <button type="submit" className="btn-primary">Crear Receta</button>
+          <button type="submit" className="btn-primary">
+            创建配方
+          </button>
         </form>
 
-        <h3>Recetas Existentes</h3>
+        <h3>现有配方</h3>
         <table>
           <thead>
             <tr>
               <th>ID</th>
-              <th>Producto</th>
-              <th>Ingredientes</th>
-              <th>Extras</th>
-              <th>Acciones</th>
+              <th>商品</th>
+              <th>原料</th>
+              <th>加料</th>
+              <th>操作</th>
             </tr>
           </thead>
           <tbody>
             {recetas.length === 0 ? (
               <tr>
-                <td colSpan="5">No se encontraron recetas</td>
+                <td colSpan="5">未找到配方</td>
               </tr>
             ) : (
               recetas.map(receta => {
@@ -816,7 +861,7 @@ function InventarioPage() {
                     <td>
                       {isEditing ? (
                         <div style={{ padding: '10px' }}>
-                          <h5 style={{ marginTop: '0' }}>Ingredientes:</h5>
+                          <h5 style={{ marginTop: '0' }}>原料：</h5>
                           {editRecetaData.items.map((item, index) => (
                             <div key={index} style={{ marginBottom: '10px', padding: '8px', border: '1px solid #ddd', borderRadius: '4px', backgroundColor: '#f5f5f5' }}>
                               <select
@@ -825,13 +870,14 @@ function InventarioPage() {
                                 required
                                 style={{ marginRight: '10px' }}
                               >
-                                <option value="">-- Seleccionar Insumo --</option>
+                                <option value="">-- 选择原料 --</option>
                                 {insumos.map(insumo => (
                                   <option key={insumo.id} value={insumo.id}>
-                                    {insumo.nombre} ({insumo.unidad})
+                                    {insumo.nombre}（{insumo.unidad}）
                                   </option>
                                 ))}
                               </select>
+
                               <input
                                 type="number"
                                 step="0.01"
@@ -840,15 +886,26 @@ function InventarioPage() {
                                 required
                                 style={{ width: '100px', marginRight: '10px' }}
                               />
+
                               {editRecetaData.items.length > 1 && (
-                                <button type="button" onClick={() => removeEditRecetaItem(index)} className="btn-danger btn-small">
-                                  Eliminar
+                                <button
+                                  type="button"
+                                  onClick={() => removeEditRecetaItem(index)}
+                                  className="btn-danger btn-small"
+                                >
+                                  删除
                                 </button>
                               )}
                             </div>
                           ))}
-                          <button type="button" onClick={addEditRecetaItem} className="btn-secondary btn-small" style={{ marginTop: '5px' }}>
-                            Agregar Ingrediente
+
+                          <button
+                            type="button"
+                            onClick={addEditRecetaItem}
+                            className="btn-secondary btn-small"
+                            style={{ marginTop: '5px' }}
+                          >
+                            添加原料
                           </button>
                         </div>
                       ) : (
@@ -861,31 +918,33 @@ function InventarioPage() {
                         </ul>
                       )}
                     </td>
+
                     <td>
                       {isEditing ? (
                         <div style={{ padding: '10px' }}>
-                          <h5 style={{ marginTop: '0' }}>Extras:</h5>
+                          <h5 style={{ marginTop: '0' }}>加料：</h5>
                           {editRecetaData.extras.length === 0 ? (
-                            <p style={{ color: '#999', fontSize: '0.9em' }}>Sin extras</p>
+                            <p style={{ color: '#999', fontSize: '0.9em' }}>无加料</p>
                           ) : (
                             editRecetaData.extras.map((extra, index) => (
                               <div key={index} style={{ marginBottom: '10px', padding: '8px', border: '1px solid #ddd', borderRadius: '4px', backgroundColor: '#f9f9f9' }}>
                                 <div style={{ marginBottom: '8px' }}>
                                   <label style={{ display: 'block', fontSize: '0.85em', marginBottom: '3px', fontWeight: '500' }}>
-                                    Nombre del Extra:
+                                    加料名称：
                                   </label>
                                   <input
                                     type="text"
                                     value={extra.nombre}
                                     onChange={(e) => updateEditRecetaExtra(index, 'nombre', e.target.value)}
-                                    placeholder="Ej: Queso extra"
+                                    placeholder="例如：加芝士"
                                     required
                                     style={{ width: '200px' }}
                                   />
                                 </div>
+
                                 <div style={{ marginBottom: '8px' }}>
                                   <label style={{ display: 'block', fontSize: '0.85em', marginBottom: '3px', fontWeight: '500' }}>
-                                    Precio ($):
+                                    价格：
                                   </label>
                                   <input
                                     type="number"
@@ -896,9 +955,10 @@ function InventarioPage() {
                                     style={{ width: '100px' }}
                                   />
                                 </div>
+
                                 <div style={{ marginBottom: '8px' }}>
                                   <label style={{ display: 'block', fontSize: '0.85em', marginBottom: '3px', fontWeight: '500' }}>
-                                    Insumo Asociado:
+                                    关联原料：
                                   </label>
                                   <select
                                     value={extra.insumoId}
@@ -906,17 +966,18 @@ function InventarioPage() {
                                     required
                                     style={{ width: '200px' }}
                                   >
-                                    <option value="">-- Seleccionar Insumo --</option>
+                                    <option value="">-- 选择原料 --</option>
                                     {insumos.map(insumo => (
                                       <option key={insumo.id} value={insumo.id}>
-                                        {insumo.nombre} ({insumo.unidad})
+                                        {insumo.nombre}（{insumo.unidad}）
                                       </option>
                                     ))}
                                   </select>
                                 </div>
+
                                 <div style={{ marginBottom: '8px' }}>
                                   <label style={{ display: 'block', fontSize: '0.85em', marginBottom: '3px', fontWeight: '500' }}>
-                                    Cantidad del Insumo:
+                                    原料数量：
                                   </label>
                                   <input
                                     type="number"
@@ -927,14 +988,25 @@ function InventarioPage() {
                                     style={{ width: '100px' }}
                                   />
                                 </div>
-                                <button type="button" onClick={() => removeEditRecetaExtra(index)} className="btn-danger btn-small">
-                                  Eliminar Extra
+
+                                <button
+                                  type="button"
+                                  onClick={() => removeEditRecetaExtra(index)}
+                                  className="btn-danger btn-small"
+                                >
+                                  删除加料
                                 </button>
                               </div>
                             ))
                           )}
-                          <button type="button" onClick={addEditRecetaExtra} className="btn-secondary btn-small" style={{ marginTop: '5px' }}>
-                            Agregar Extra
+
+                          <button
+                            type="button"
+                            onClick={addEditRecetaExtra}
+                            className="btn-secondary btn-small"
+                            style={{ marginTop: '5px' }}
+                          >
+                            添加加料
                           </button>
                         </div>
                       ) : (
@@ -942,16 +1014,17 @@ function InventarioPage() {
                           <ul style={{ margin: '0', paddingLeft: '20px' }}>
                             {receta.extras.map((extra, idx) => (
                               <li key={idx}>
-                                <strong>{extra.nombre}</strong> - ${extra.precio.toFixed(2)}<br/>
-                                <small>({extra.insumoNombre}: {extra.cantidadInsumo})</small>
+                                <strong>{extra.nombre}</strong> - ${extra.precio.toFixed(2)}<br />
+                                <small>（{extra.insumoNombre}: {extra.cantidadInsumo}）</small>
                               </li>
                             ))}
                           </ul>
                         ) : (
-                          <span style={{ color: '#999' }}>Sin extras</span>
+                          <span style={{ color: '#999' }}>无加料</span>
                         )
                       )}
                     </td>
+
                     <td>
                       {isEditing ? (
                         <div style={{ display: 'flex', gap: '5px', flexDirection: 'column' }}>
@@ -959,13 +1032,13 @@ function InventarioPage() {
                             onClick={() => handleSaveEditReceta(receta.id)}
                             className="btn-success btn-small"
                           >
-                            Guardar
+                            保存
                           </button>
                           <button
                             onClick={handleCancelEditReceta}
                             className="btn-secondary btn-small"
                           >
-                            Cancelar
+                            取消
                           </button>
                         </div>
                       ) : (
@@ -973,7 +1046,7 @@ function InventarioPage() {
                           onClick={() => handleStartEditReceta(receta)}
                           className="btn-primary btn-small"
                         >
-                          Editar
+                          编辑
                         </button>
                       )}
                     </td>

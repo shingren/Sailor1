@@ -8,16 +8,13 @@ function CierreCajaPage() {
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
 
-  // Resumen del día
   const [resumenDia, setResumenDia] = useState(null)
 
-  // Form state for creating cierre
   const [formData, setFormData] = useState({
     saldoReal: '',
     saldoInicial: '0'
   })
 
-  // History data
   const [historial, setHistorial] = useState([])
 
   useEffect(() => {
@@ -35,19 +32,19 @@ function CierreCajaPage() {
       })
 
       if (response.status === 401 || response.status === 403) {
-        setError('No autorizado - por favor inicia sesión como CAJA o ADMIN')
+        setError('未授权，请以收银员或管理员身份登录')
         return
       }
 
       if (!response.ok) {
-        setError('Error al cargar resumen del día')
+        setError('加载今日汇总失败')
         return
       }
 
       const data = await response.json()
       setResumenDia(data)
     } catch (err) {
-      setError('Error al cargar resumen del día: ' + err.message)
+      setError('加载今日汇总失败：' + err.message)
     } finally {
       setLoading(false)
     }
@@ -64,7 +61,7 @@ function CierreCajaPage() {
         setHistorial(data)
       }
     } catch (err) {
-      console.error('Error al cargar historial:', err)
+      console.error('加载结算历史失败：', err)
     }
   }
 
@@ -72,7 +69,6 @@ function CierreCajaPage() {
     const { name, value } = e.target
     setFormData({ ...formData, [name]: value })
 
-    // Refresh resumen when saldoInicial changes
     if (name === 'saldoInicial') {
       setTimeout(fetchResumenDia, 300)
     }
@@ -84,7 +80,7 @@ function CierreCajaPage() {
     setSuccess(null)
 
     if (!formData.saldoReal || formData.saldoReal === '') {
-      setError('Saldo real es requerido')
+      setError('请填写实际金额')
       return
     }
 
@@ -102,89 +98,87 @@ function CierreCajaPage() {
       })
 
       if (response.status === 401 || response.status === 403) {
-        setError('No autorizado - por favor inicia sesión como CAJA o ADMIN')
+        setError('未授权，请以收银员或管理员身份登录')
         return
       }
 
       if (!response.ok) {
         const errorData = await response.json()
-        setError(errorData.message || 'Error al crear cierre')
+        setError(errorData.message || '创建结算记录失败')
         return
       }
 
-      setSuccess('Cierre registrado exitosamente!')
+      setSuccess('结算登记成功！')
       setFormData({ saldoReal: '', saldoInicial: '0' })
 
-      // Refresh data
       fetchResumenDia()
       fetchHistorial()
     } catch (err) {
-      setError('Error al crear cierre: ' + err.message)
+      setError('创建结算记录失败：' + err.message)
     }
   }
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('es-MX', {
+    return new Intl.NumberFormat('zh-CN', {
       style: 'currency',
       currency: 'MXN'
     }).format(amount || 0)
   }
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('es-MX')
+    return new Date(dateString).toLocaleDateString('zh-CN')
   }
 
   if (!isAuthenticated) {
     return (
       <div className="centered-container">
         <div className="card">
-          <h2>Cierre de Caja</h2>
-          <p>Debes iniciar sesión como CAJA o ADMIN para ver esta página.</p>
-          <Link to="/login" className="btn-primary">Ir a Iniciar Sesión</Link>
+          <h2>收银结算</h2>
+          <p>请以收银员或管理员身份登录后再查看此页面。</p>
+          <Link to="/login" className="btn-primary">去登录</Link>
         </div>
       </div>
     )
   }
 
-  if (loading) return <div className="loading">Cargando cierre de caja</div>
+  if (loading) return <div className="loading">正在加载收银结算...</div>
 
   return (
     <div>
-      <h1>Cierre de Caja</h1>
+      <h1>收银结算</h1>
 
       {success && <div className="alert alert-success">{success}</div>}
       {error && <div className="alert alert-error">{error}</div>}
 
-      {/* Section A: Resumen del día */}
       <div className="card">
         <div className="card-header">
-          <h2 className="card-title">Resumen del Día</h2>
+          <h2 className="card-title">今日汇总</h2>
         </div>
 
         {resumenDia && (
           <div>
-            <p><strong>Fecha:</strong> {formatDate(resumenDia.fecha)}</p>
+            <p><strong>日期：</strong> {formatDate(resumenDia.fecha)}</p>
 
             <table>
               <tbody>
                 <tr>
-                  <td><strong>Total ventas del día:</strong></td>
+                  <td><strong>今日销售总额：</strong></td>
                   <td>{formatCurrency(resumenDia.totalVentasDia)}</td>
                 </tr>
                 <tr>
-                  <td><strong>Total efectivo:</strong></td>
+                  <td><strong>现金总额：</strong></td>
                   <td>{formatCurrency(resumenDia.totalEfectivo)}</td>
                 </tr>
                 <tr>
-                  <td><strong>Total tarjeta:</strong></td>
+                  <td><strong>银行卡总额：</strong></td>
                   <td>{formatCurrency(resumenDia.totalTarjeta)}</td>
                 </tr>
                 <tr>
-                  <td><strong>Cantidad de facturas:</strong></td>
+                  <td><strong>账单数量：</strong></td>
                   <td>{resumenDia.cantidadFacturas}</td>
                 </tr>
                 <tr>
-                  <td><strong>Saldo esperado:</strong></td>
+                  <td><strong>应收金额：</strong></td>
                   <td>{formatCurrency(resumenDia.saldoEsperado)}</td>
                 </tr>
               </tbody>
@@ -192,24 +186,23 @@ function CierreCajaPage() {
 
             {resumenDia.cierreExiste && (
               <div className="alert alert-warning mt-2">
-                Ya existe un cierre registrado para el día de hoy.
+                今天已经登记过结算。
               </div>
             )}
           </div>
         )}
       </div>
 
-      {/* Section B: Registrar cierre */}
       {resumenDia && !resumenDia.cierreExiste && (
         <div className="card">
           <div className="card-header">
-            <h2 className="card-title">Registrar Cierre del Día</h2>
+            <h2 className="card-title">登记今日结算</h2>
           </div>
 
           <form onSubmit={handleSubmit}>
             <div className="form-row">
               <div className="form-group">
-                <label htmlFor="saldoInicial">Saldo Inicial</label>
+                <label htmlFor="saldoInicial">初始金额</label>
                 <input
                   id="saldoInicial"
                   name="saldoInicial"
@@ -222,7 +215,7 @@ function CierreCajaPage() {
               </div>
 
               <div className="form-group">
-                <label htmlFor="saldoReal">Saldo Real (Conteo de caja) *</label>
+                <label htmlFor="saldoReal">实际金额（点现金额）*</label>
                 <input
                   id="saldoReal"
                   name="saldoReal"
@@ -238,40 +231,43 @@ function CierreCajaPage() {
 
             {formData.saldoReal && resumenDia && (
               <div className="alert alert-info mt-2">
-                <p><strong>Diferencia:</strong> {formatCurrency(parseFloat(formData.saldoReal) - resumenDia.saldoEsperado)}</p>
+                <p>
+                  <strong>差额：</strong>{' '}
+                  {formatCurrency(parseFloat(formData.saldoReal) - resumenDia.saldoEsperado)}
+                </p>
               </div>
             )}
 
             <button type="submit" className="btn-primary">
-              Registrar Cierre del Día
+              登记结算
             </button>
           </form>
         </div>
       )}
 
-      {/* Section C: Historial de cierres */}
       <div className="card">
         <div className="card-header">
-          <h2 className="card-title">Historial de Cierres</h2>
+          <h2 className="card-title">结算历史</h2>
         </div>
 
         {historial.length === 0 ? (
-          <p className="text-muted">No hay cierres registrados</p>
+          <p className="text-muted">暂无结算记录</p>
         ) : (
           <table>
             <thead>
               <tr>
-                <th>Fecha</th>
-                <th>Ventas</th>
-                <th>Efectivo</th>
-                <th>Tarjeta</th>
-                <th>Facturas #</th>
-                <th>Saldo Esperado</th>
-                <th>Saldo Real</th>
-                <th>Diferencia</th>
-                <th>Usuario</th>
+                <th>日期</th>
+                <th>销售额</th>
+                <th>现金</th>
+                <th>银行卡</th>
+                <th>账单数量</th>
+                <th>应收金额</th>
+                <th>实际金额</th>
+                <th>差额</th>
+                <th>操作员</th>
               </tr>
             </thead>
+
             <tbody>
               {historial.map((cierre) => (
                 <tr key={cierre.id}>

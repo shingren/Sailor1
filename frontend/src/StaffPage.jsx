@@ -11,7 +11,6 @@ function StaffPage() {
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
 
-  // Form state for creating user
   const [newUser, setNewUser] = useState({
     nombre: '',
     email: '',
@@ -19,15 +18,26 @@ function StaffPage() {
     rol: 'MESERO'
   })
 
-  // State for role updates (indexed by usuario ID)
   const [roleUpdates, setRoleUpdates] = useState({})
 
-  // State for editing user
   const [editingUserId, setEditingUserId] = useState(null)
   const [editForm, setEditForm] = useState({
     nombre: '',
     password: ''
   })
+
+  const getRoleText = (rol) => {
+    const roleMap = {
+      ADMIN: '管理员',
+      MESERO: '服务员',
+      COCINA: '后厨',
+      CAJA: '收银员',
+      INVENTARIO: '库存员',
+      GERENCIA: '经理'
+    }
+
+    return roleMap[rol] || rol || '-'
+  }
 
   useEffect(() => {
     if (!isAuthenticated) return
@@ -37,19 +47,20 @@ function StaffPage() {
   const fetchUsuarios = async () => {
     setLoading(true)
     setError(null)
+
     try {
       const response = await fetch('/api/usuarios', {
         headers: { 'Authorization': getAuthHeader() }
       })
 
       if (response.status === 401 || response.status === 403) {
-        setError('No autorizado - por favor inicia sesión como ADMIN')
+        setError('未授权，请以管理员身份登录')
         setLoading(false)
         return
       }
 
       if (!response.ok) {
-        setError('Error al cargar usuarios')
+        setError('加载员工失败')
         setLoading(false)
         return
       }
@@ -57,14 +68,13 @@ function StaffPage() {
       const data = await response.json()
       setUsuarios(data)
 
-      // Initialize role updates state
       const updates = {}
       data.forEach(u => {
         updates[u.id] = u.rol
       })
       setRoleUpdates(updates)
     } catch (err) {
-      setError('Error al cargar usuarios: ' + err.message)
+      setError('加载员工失败：' + err.message)
     } finally {
       setLoading(false)
     }
@@ -86,21 +96,21 @@ function StaffPage() {
       })
 
       if (response.status === 401 || response.status === 403) {
-        setError('No autorizado - por favor inicia sesión como ADMIN')
+        setError('未授权，请以管理员身份登录')
         return
       }
 
       if (!response.ok) {
         const errorData = await response.json()
-        setError(`Error al crear usuario: ${errorData.error || 'Error desconocido'}`)
+        setError(`创建员工失败：${errorData.error || '未知错误'}`)
         return
       }
 
-      setSuccess(`Usuario "${newUser.nombre}" creado exitosamente!`)
+      setSuccess(`员工“${newUser.nombre}”创建成功！`)
       setNewUser({ nombre: '', email: '', password: '', rol: 'MESERO' })
       fetchUsuarios()
     } catch (err) {
-      setError('Error al crear usuario: ' + err.message)
+      setError('创建员工失败：' + err.message)
     }
   }
 
@@ -119,20 +129,20 @@ function StaffPage() {
       })
 
       if (response.status === 401 || response.status === 403) {
-        setError('No autorizado - por favor inicia sesión como ADMIN')
+        setError('未授权，请以管理员身份登录')
         return
       }
 
       if (!response.ok) {
         const errorData = await response.json()
-        setError(`Error al actualizar rol: ${errorData.error || 'Error desconocido'}`)
+        setError(`更新角色失败：${errorData.error || '未知错误'}`)
         return
       }
 
-      setSuccess('Rol actualizado exitosamente!')
+      setSuccess('角色更新成功！')
       fetchUsuarios()
     } catch (err) {
-      setError('Error al actualizar rol: ' + err.message)
+      setError('更新角色失败：' + err.message)
     }
   }
 
@@ -140,7 +150,7 @@ function StaffPage() {
     setEditingUserId(usuario.id)
     setEditForm({
       nombre: usuario.nombre,
-      password: '' // Leave password empty - only fill if changing
+      password: ''
     })
     setError(null)
     setSuccess(null)
@@ -155,9 +165,8 @@ function StaffPage() {
     setError(null)
     setSuccess(null)
 
-    // Validate that at least nombre is provided
     if (!editForm.nombre || editForm.nombre.trim() === '') {
-      setError('El nombre no puede estar vacío')
+      setError('姓名不能为空')
       return
     }
 
@@ -170,32 +179,32 @@ function StaffPage() {
         },
         body: JSON.stringify({
           nombre: editForm.nombre,
-          password: editForm.password || undefined // Only send if provided
+          password: editForm.password || undefined
         })
       })
 
       if (response.status === 401 || response.status === 403) {
-        setError('No autorizado - por favor inicia sesión como ADMIN')
+        setError('未授权，请以管理员身份登录')
         return
       }
 
       if (!response.ok) {
         const errorData = await response.json()
-        setError(`Error al editar usuario: ${errorData.error || 'Error desconocido'}`)
+        setError(`编辑员工失败：${errorData.error || '未知错误'}`)
         return
       }
 
-      setSuccess('Usuario actualizado exitosamente!')
+      setSuccess('员工信息更新成功！')
       setEditingUserId(null)
       setEditForm({ nombre: '', password: '' })
       fetchUsuarios()
     } catch (err) {
-      setError('Error al editar usuario: ' + err.message)
+      setError('编辑员工失败：' + err.message)
     }
   }
 
   const handleDelete = async (usuarioId, email) => {
-    if (!confirm(`¿Estás seguro de eliminar el usuario "${email}"?`)) {
+    if (!window.confirm(`确定要删除员工“${email}”吗？`)) {
       return
     }
 
@@ -209,20 +218,20 @@ function StaffPage() {
       })
 
       if (response.status === 401 || response.status === 403) {
-        setError('No autorizado - por favor inicia sesión como ADMIN')
+        setError('未授权，请以管理员身份登录')
         return
       }
 
       if (!response.ok) {
         const errorData = await response.json()
-        setError(`Error al eliminar usuario: ${errorData.error || 'Error desconocido'}`)
+        setError(`删除员工失败：${errorData.error || '未知错误'}`)
         return
       }
 
-      setSuccess(`Usuario "${email}" eliminado exitosamente!`)
+      setSuccess(`员工“${email}”删除成功！`)
       fetchUsuarios()
     } catch (err) {
-      setError('Error al eliminar usuario: ' + err.message)
+      setError('删除员工失败：' + err.message)
     }
   }
 
@@ -230,46 +239,45 @@ function StaffPage() {
     return (
       <div className="centered-container">
         <div className="card">
-          <h2>Gestión de Personal</h2>
-          <p>Debes iniciar sesión como ADMIN para ver esta página.</p>
-          <Link to="/login" className="btn-primary">Ir a Iniciar Sesión</Link>
+          <h2>员工管理</h2>
+          <p>请以管理员身份登录后再查看此页面。</p>
+          <Link to="/login" className="btn-primary">去登录</Link>
         </div>
       </div>
     )
   }
 
-  if (loading) return <div className="loading">Cargando personal</div>
-  if (error && usuarios.length === 0) return <div className="alert alert-error">Error: {error}</div>
+  if (loading) return <div className="loading">正在加载员工...</div>
+  if (error && usuarios.length === 0) return <div className="alert alert-error">错误：{error}</div>
 
   return (
     <div>
-      <h1>Gestión de Personal</h1>
+      <h1>员工管理</h1>
 
       {success && <div className="alert alert-success">{success}</div>}
       {error && <div className="alert alert-error">{error}</div>}
 
-      {/* Section A: Create User */}
       <div className="card">
         <div className="card-header">
-          <h2>Crear Nuevo Usuario</h2>
+          <h2>创建新员工</h2>
         </div>
 
         <form onSubmit={handleCreateUser}>
           <div className="form-row">
             <div className="form-group">
-              <label htmlFor="nombre">Nombre</label>
+              <label htmlFor="nombre">姓名</label>
               <input
                 id="nombre"
                 type="text"
                 value={newUser.nombre}
                 onChange={(e) => setNewUser({ ...newUser, nombre: e.target.value })}
-                placeholder="Nombre completo"
+                placeholder="请输入姓名"
                 required
               />
             </div>
 
             <div className="form-group">
-              <label htmlFor="email">Email</label>
+              <label htmlFor="email">邮箱</label>
               <input
                 id="email"
                 type="email"
@@ -281,20 +289,20 @@ function StaffPage() {
             </div>
 
             <div className="form-group">
-              <label htmlFor="password">Contraseña</label>
+              <label htmlFor="password">密码</label>
               <input
                 id="password"
                 type="password"
                 value={newUser.password}
                 onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                placeholder="Ingresa contraseña"
+                placeholder="请输入密码"
                 required
                 minLength={6}
               />
             </div>
 
             <div className="form-group">
-              <label htmlFor="rol">Rol</label>
+              <label htmlFor="rol">角色</label>
               <select
                 id="rol"
                 value={newUser.rol}
@@ -302,36 +310,36 @@ function StaffPage() {
                 required
               >
                 {ROLES.map(r => (
-                  <option key={r} value={r}>{r}</option>
+                  <option key={r} value={r}>{getRoleText(r)}</option>
                 ))}
               </select>
             </div>
           </div>
 
-          <button type="submit" className="btn-primary">Crear Usuario</button>
+          <button type="submit" className="btn-primary">创建员工</button>
         </form>
       </div>
 
-      {/* Section B: User List */}
       <div className="card">
         <div className="card-header">
-          <h2>Usuarios Registrados</h2>
+          <h2>已注册员工</h2>
         </div>
 
         {usuarios.length === 0 ? (
-          <p className="text-muted">No hay usuarios registrados</p>
+          <p className="text-muted">暂无已注册员工</p>
         ) : (
           <table>
             <thead>
               <tr>
                 <th>ID</th>
-                <th>Nombre</th>
-                <th>Email</th>
-                <th>Rol Actual</th>
-                <th>Cambiar Rol</th>
-                <th>Acciones</th>
+                <th>姓名</th>
+                <th>邮箱</th>
+                <th>当前角色</th>
+                <th>修改角色</th>
+                <th>操作</th>
               </tr>
             </thead>
+
             <tbody>
               {usuarios.map((usuario) => {
                 const isEditing = editingUserId === usuario.id
@@ -339,19 +347,21 @@ function StaffPage() {
                 return (
                   <tr key={usuario.id}>
                     <td>{usuario.id}</td>
+
                     <td>
                       {isEditing ? (
                         <input
                           type="text"
                           value={editForm.nombre}
                           onChange={(e) => setEditForm({ ...editForm, nombre: e.target.value })}
-                          placeholder="Nombre"
+                          placeholder="姓名"
                           style={{ width: '100%' }}
                         />
                       ) : (
                         <strong>{usuario.nombre}</strong>
                       )}
                     </td>
+
                     <td>
                       {isEditing ? (
                         <div>
@@ -360,7 +370,7 @@ function StaffPage() {
                             type="password"
                             value={editForm.password}
                             onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
-                            placeholder="Nueva contraseña (opcional)"
+                            placeholder="新密码（可选）"
                             style={{ width: '100%' }}
                           />
                         </div>
@@ -368,6 +378,7 @@ function StaffPage() {
                         usuario.email
                       )}
                     </td>
+
                     <td>
                       <span className={`badge ${
                         usuario.rol === 'ADMIN' ? 'badge-red' :
@@ -377,9 +388,10 @@ function StaffPage() {
                         usuario.rol === 'INVENTARIO' ? 'badge-purple' :
                         'badge-gray'
                       }`}>
-                        {usuario.rol}
+                        {getRoleText(usuario.rol)}
                       </span>
                     </td>
+
                     <td>
                       <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                         <select
@@ -389,18 +401,20 @@ function StaffPage() {
                           disabled={isEditing}
                         >
                           {ROLES.map(r => (
-                            <option key={r} value={r}>{r}</option>
+                            <option key={r} value={r}>{getRoleText(r)}</option>
                           ))}
                         </select>
+
                         <button
                           onClick={() => handleUpdateRol(usuario.id)}
                           className="btn-primary btn-small"
                           disabled={roleUpdates[usuario.id] === usuario.rol || isEditing}
                         >
-                          Actualizar
+                          更新
                         </button>
                       </div>
                     </td>
+
                     <td>
                       {isEditing ? (
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -408,13 +422,14 @@ function StaffPage() {
                             onClick={() => handleSaveEdit(usuario.id)}
                             className="btn-success btn-small"
                           >
-                            Guardar
+                            保存
                           </button>
+
                           <button
                             onClick={handleCancelEdit}
                             className="btn-secondary btn-small"
                           >
-                            Cancelar
+                            取消
                           </button>
                         </div>
                       ) : (
@@ -423,13 +438,14 @@ function StaffPage() {
                             onClick={() => handleStartEdit(usuario)}
                             className="btn-warning btn-small"
                           >
-                            Editar
+                            编辑
                           </button>
+
                           <button
                             onClick={() => handleDelete(usuario.id, usuario.email)}
                             className="btn-danger btn-small"
                           >
-                            Eliminar
+                            删除
                           </button>
                         </div>
                       )}
