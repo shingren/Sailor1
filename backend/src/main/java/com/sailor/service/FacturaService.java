@@ -10,8 +10,6 @@ import com.sailor.entity.FacturaEstado;
 import com.sailor.entity.Mesa;
 import com.sailor.entity.Pago;
 import com.sailor.entity.Pedido;
-import com.sailor.entity.PedidoItem;
-import com.sailor.entity.PedidoItemExtra;
 import com.sailor.exception.FacturaAlreadyExistsException;
 import com.sailor.exception.InvalidPedidoEstadoException;
 import com.sailor.exception.PagoInvalidoException;
@@ -60,29 +58,35 @@ public class FacturaService {
     @Autowired
     private CuentaService cuentaService;
 
+    private boolean esPedidoFacturable(Pedido pedido) {
+        return "LISTO".equals(pedido.getEstado()) || "ENTREGADO".equals(pedido.getEstado());
+    }
+
+    private boolean esPedidoPendiente(Pedido pedido) {
+        return "PENDIENTE".equals(pedido.getEstado())
+                || "PREPARACION".equals(pedido.getEstado())
+                || "EN_PREPARACION".equals(pedido.getEstado());
+    }
+
     @Transactional
     public FacturaResponseDTO crearFactura(FacturaCreateRequestDTO request) {
         Pedido pedido = pedidoRepository.findById(request.getPedidoId())
                 .orElseThrow(() -> new RuntimeException("Pedido not found with id: " + request.getPedidoId()));
 
-        // Validate that pedido is in LISTO state (business rule)
-        if (!pedido.getEstado().equals("LISTO")) {
+        // 允许已完成制作 LISTO 或已上菜 ENTREGADO 的订单生成账单
+        if (!esPedidoFacturable(pedido)) {
             throw new InvalidPedidoEstadoException(
-                "Solo se puede facturar pedidos en estado LISTO. Estado actual: " + pedido.getEstado()
-            );
+                    "只有已完成制作或已上菜的订单可以生成账单。当前状态：" + pedido.getEstado());
         }
 
-        // Validate that factura doesn't already exist for this pedido (One-to-One relationship)
         if (facturaRepository.existsByPedido(pedido)) {
-            throw new FacturaAlreadyExistsException("Ya existe una factura para el pedido #" + request.getPedidoId());
+            throw new FacturaAlreadyExistsException("该订单已经生成过账单，订单编号：" + request.getPedidoId());
         }
 
         double subtotal = pedido.getItems().stream()
                 .mapToDouble(item -> {
-                    // Base item price
                     double itemTotal = item.getCantidad() * item.getPrecioUnitario();
 
-                    // Add extras price
                     double extrasTotal = item.getExtras().stream()
                             .mapToDouble(extra -> extra.getCantidad() * extra.getPrecioUnitario() * item.getCantidad())
                             .sum();
@@ -102,18 +106,13 @@ public class FacturaService {
         factura.setDescuento(descuento);
         factura.setTotal(total);
 
-        // Set usuario responsable de crear la factura (trazabilidad)
         try {
             factura.setCreadaPorUsuario(usuarioService.getCurrentUsuario());
         } catch (Exception e) {
-            // Si no se puede obtener el usuario (ej. problema con SecurityContext),
-            // continuar sin trazabilidad en lugar de fallar toda la operación
             System.err.println("Warning: No se pudo obtener usuario actual para trazabilidad: " + e.getMessage());
         }
 
-        // Handle cliente fiscal data and snapshot
         if (request.isEsConsumidorFinal()) {
-            // Consumidor final: no cliente association, set snapshot to standard values
             factura.setCliente(null);
             factura.setClienteIdentificacionFiscal("CONSUMIDOR FINAL");
             factura.setClienteNombre("Consumidor Final");
@@ -121,39 +120,36 @@ public class FacturaService {
             factura.setClienteEmail(null);
             factura.setClienteTelefono(null);
         } else {
-            // Nominative factura: validate and handle cliente data
-            if (request.getClienteIdentificacionFiscal() == null || request.getClienteIdentificacionFiscal().trim().isEmpty()) {
-                throw new RuntimeException("Para factura nominativa, la identificación fiscal del cliente es obligatoria");
-            }
-            if (request.getClienteNombre() == null || request.getClienteNombre().trim().isEmpty()) {
-                throw new RuntimeException("Para factura nominativa, el nombre del cliente es obligatorio");
+            if (request.getClienteIdentificacionFiscal() == null
+                    || request.getClienteIdentificacionFiscal().trim().isEmpty()) {
+                throw new RuntimeException("开具实名账单时，客户税务识别信息不能为空");
             }
 
-            // Search for existing cliente by identificacion
+            if (request.getClienteNombre() == null || request.getClienteNombre().trim().isEmpty()) {
+                throw new RuntimeException("开具实名账单时，客户姓名不能为空");
+            }
+
             Optional<Cliente> clienteExistenteOpt = clienteRepository.findByIdentificacionFiscal(
                     request.getClienteIdentificacionFiscal());
 
-            Cliente clienteToAssociate = null;
-
             if (clienteExistenteOpt.isPresent()) {
-                // Cliente exists: associate it to factura
-                clienteToAssociate = clienteExistenteOpt.get();
+                Cliente clienteToAssociate = clienteExistenteOpt.get();
                 factura.setCliente(clienteToAssociate);
 
-                // Use existing cliente data to fill snapshot (prioritize request data if provided)
                 factura.setClienteIdentificacionFiscal(clienteToAssociate.getIdentificacionFiscal());
                 factura.setClienteNombre(
-                        request.getClienteNombre() != null ? request.getClienteNombre() : clienteToAssociate.getNombre());
+                        request.getClienteNombre() != null ? request.getClienteNombre()
+                                : clienteToAssociate.getNombre());
                 factura.setClienteDireccion(
-                        request.getClienteDireccion() != null ? request.getClienteDireccion() : clienteToAssociate.getDireccion());
+                        request.getClienteDireccion() != null ? request.getClienteDireccion()
+                                : clienteToAssociate.getDireccion());
                 factura.setClienteEmail(
                         request.getClienteEmail() != null ? request.getClienteEmail() : clienteToAssociate.getEmail());
                 factura.setClienteTelefono(
-                        request.getClienteTelefono() != null ? request.getClienteTelefono() : clienteToAssociate.getTelefono());
+                        request.getClienteTelefono() != null ? request.getClienteTelefono()
+                                : clienteToAssociate.getTelefono());
             } else {
-                // Cliente doesn't exist
                 if (request.isGuardarCliente()) {
-                    // Create new cliente if guardarCliente=true
                     Cliente nuevoCliente = new Cliente();
                     nuevoCliente.setIdentificacionFiscal(request.getClienteIdentificacionFiscal());
                     nuevoCliente.setNombre(request.getClienteNombre());
@@ -166,7 +162,6 @@ public class FacturaService {
                     factura.setCliente(savedCliente);
                 }
 
-                // Always save snapshot from request data for nominative facturas
                 factura.setClienteIdentificacionFiscal(request.getClienteIdentificacionFiscal());
                 factura.setClienteNombre(request.getClienteNombre());
                 factura.setClienteDireccion(request.getClienteDireccion());
@@ -177,11 +172,14 @@ public class FacturaService {
 
         try {
             Factura savedFactura = facturaRepository.save(factura);
+
+            // 生成账单后，把订单状态改为 FACTURADO
+            pedido.setEstado("FACTURADO");
+            pedidoRepository.save(pedido);
+
             return mapToResponseDTO(savedFactura);
         } catch (DataIntegrityViolationException e) {
-            // Race condition: otro thread ya creó la factura entre la validación y el save
-            // Convertir a excepción de negocio para respuesta HTTP 409 consistente
-            throw new FacturaAlreadyExistsException("Ya existe una factura para el pedido #" + request.getPedidoId());
+            throw new FacturaAlreadyExistsException("该订单已经生成过账单，订单编号：" + request.getPedidoId());
         }
     }
 
@@ -193,44 +191,36 @@ public class FacturaService {
         Cuenta cuenta = cuentaRepository.findById(cuentaId)
                 .orElseThrow(() -> new RuntimeException("Cuenta not found with id: " + cuentaId));
 
-        // Validate that cuenta has at least one LISTO pedido
-        long listosCount = cuenta.getPedidos().stream()
-                .filter(p -> "LISTO".equals(p.getEstado()))
+        // 允许 LISTO 或 ENTREGADO 的订单生成账单
+        long facturablesCount = cuenta.getPedidos().stream()
+                .filter(this::esPedidoFacturable)
                 .count();
 
-        if (listosCount == 0) {
+        if (facturablesCount == 0) {
             throw new InvalidPedidoEstadoException(
-                "La cuenta no tiene pedidos LISTOS para facturar"
-            );
+                    "该账单没有可结账的已完成制作或已上菜订单");
         }
 
-        // Validate that ALL pedidos are LISTO (or PAGADO) - none pending
+        // 只要还有待处理或制作中的订单，就不能整桌结账
         long pendientesCount = cuenta.getPedidos().stream()
-                .filter(p -> "PENDIENTE".equals(p.getEstado()) ||
-                             "PREPARACION".equals(p.getEstado()))
+                .filter(this::esPedidoPendiente)
                 .count();
 
         if (pendientesCount > 0) {
             throw new InvalidPedidoEstadoException(
-                "La cuenta tiene " + pendientesCount + " pedido(s) pendiente(s). " +
-                "Todos los pedidos deben estar LISTOS para facturar la cuenta"
-            );
+                    "该账单还有 " + pendientesCount + " 个待处理或制作中的订单，不能结账");
         }
 
-        // Validate that factura doesn't already exist for this cuenta
         if (facturaRepository.existsByCuenta(cuenta)) {
-            throw new FacturaAlreadyExistsException("Ya existe una factura para la cuenta #" + cuentaId);
+            throw new FacturaAlreadyExistsException("该账单已经生成过发票，账单编号：" + cuentaId);
         }
 
-        // Calculate subtotal from ALL LISTO pedidos in cuenta
         double subtotal = cuenta.getPedidos().stream()
-                .filter(p -> "LISTO".equals(p.getEstado()))
+                .filter(this::esPedidoFacturable)
                 .flatMap(pedido -> pedido.getItems().stream())
                 .mapToDouble(item -> {
-                    // Base item price
                     double itemTotal = item.getCantidad() * item.getPrecioUnitario();
 
-                    // Add extras price
                     double extrasTotal = item.getExtras().stream()
                             .mapToDouble(extra -> extra.getCantidad() * extra.getPrecioUnitario() * item.getCantidad())
                             .sum();
@@ -244,21 +234,19 @@ public class FacturaService {
         double total = subtotal + impuestos - descuento;
 
         Factura factura = new Factura();
-        factura.setCuenta(cuenta);  // Associate to cuenta (new)
-        factura.setPedido(null);    // Legacy field null for cuenta-based facturas
+        factura.setCuenta(cuenta);
+        factura.setPedido(null);
         factura.setSubtotal(subtotal);
         factura.setImpuestos(impuestos);
         factura.setDescuento(descuento);
         factura.setTotal(total);
 
-        // Set usuario responsable de crear la factura (trazabilidad)
         try {
             factura.setCreadaPorUsuario(usuarioService.getCurrentUsuario());
         } catch (Exception e) {
             System.err.println("Warning: No se pudo obtener usuario actual para trazabilidad: " + e.getMessage());
         }
 
-        // Handle cliente fiscal data (same as original crearFactura)
         if (request.isEsConsumidorFinal()) {
             factura.setCliente(null);
             factura.setClienteIdentificacionFiscal("CONSUMIDOR FINAL");
@@ -267,11 +255,13 @@ public class FacturaService {
             factura.setClienteEmail(null);
             factura.setClienteTelefono(null);
         } else {
-            if (request.getClienteIdentificacionFiscal() == null || request.getClienteIdentificacionFiscal().trim().isEmpty()) {
-                throw new RuntimeException("Para factura nominativa, la identificación fiscal del cliente es obligatoria");
+            if (request.getClienteIdentificacionFiscal() == null
+                    || request.getClienteIdentificacionFiscal().trim().isEmpty()) {
+                throw new RuntimeException("开具实名账单时，客户税务识别信息不能为空");
             }
+
             if (request.getClienteNombre() == null || request.getClienteNombre().trim().isEmpty()) {
-                throw new RuntimeException("Para factura nominativa, el nombre del cliente es obligatorio");
+                throw new RuntimeException("开具实名账单时，客户姓名不能为空");
             }
 
             Optional<Cliente> clienteExistenteOpt = clienteRepository.findByIdentificacionFiscal(
@@ -282,13 +272,16 @@ public class FacturaService {
                 factura.setCliente(clienteToAssociate);
                 factura.setClienteIdentificacionFiscal(clienteToAssociate.getIdentificacionFiscal());
                 factura.setClienteNombre(
-                        request.getClienteNombre() != null ? request.getClienteNombre() : clienteToAssociate.getNombre());
+                        request.getClienteNombre() != null ? request.getClienteNombre()
+                                : clienteToAssociate.getNombre());
                 factura.setClienteDireccion(
-                        request.getClienteDireccion() != null ? request.getClienteDireccion() : clienteToAssociate.getDireccion());
+                        request.getClienteDireccion() != null ? request.getClienteDireccion()
+                                : clienteToAssociate.getDireccion());
                 factura.setClienteEmail(
                         request.getClienteEmail() != null ? request.getClienteEmail() : clienteToAssociate.getEmail());
                 factura.setClienteTelefono(
-                        request.getClienteTelefono() != null ? request.getClienteTelefono() : clienteToAssociate.getTelefono());
+                        request.getClienteTelefono() != null ? request.getClienteTelefono()
+                                : clienteToAssociate.getTelefono());
             } else {
                 if (request.isGuardarCliente()) {
                     Cliente nuevoCliente = new Cliente();
@@ -314,12 +307,20 @@ public class FacturaService {
         try {
             Factura savedFactura = facturaRepository.save(factura);
 
-            // Mark cuenta as CON_FACTURA
+            // 生成账单后，把本账单中可结账的订单改为 FACTURADO
+            cuenta.getPedidos().stream()
+                    .filter(this::esPedidoFacturable)
+                    .forEach(pedido -> {
+                        pedido.setEstado("FACTURADO");
+                        pedidoRepository.save(pedido);
+                    });
+
+            // 标记账单已生成发票
             cuentaService.markCuentaConFactura(cuentaId);
 
             return mapToResponseDTO(savedFactura);
         } catch (DataIntegrityViolationException e) {
-            throw new FacturaAlreadyExistsException("Ya existe una factura para la cuenta #" + cuentaId);
+            throw new FacturaAlreadyExistsException("该账单已经生成过发票，账单编号：" + cuentaId);
         }
     }
 
@@ -337,51 +338,43 @@ public class FacturaService {
 
     @Transactional
     public FacturaResponseDTO registrarPago(Long facturaId, double monto, String metodo) {
-        // Validación 1: Monto debe ser mayor a 0
         if (monto <= 0) {
-            throw new PagoInvalidoException("El monto debe ser mayor a 0");
+            throw new PagoInvalidoException("付款金额必须大于 0");
         }
 
         Factura factura = facturaRepository.findById(facturaId)
-                .orElseThrow(() -> new RuntimeException("Factura no encontrada con id: " + facturaId));
+                .orElseThrow(() -> new RuntimeException("未找到该账单，ID：" + facturaId));
 
-        // Validación 2: Factura debe estar PENDIENTE (no se puede pagar una factura ya PAGADA)
         if (factura.getEstado() == FacturaEstado.PAGADA) {
-            throw new FacturaYaPagadaException("No se pueden registrar pagos en una factura que ya está PAGADA");
+            throw new FacturaYaPagadaException("该账单已经付款，不能重复登记付款");
         }
 
-        // Validación 3: Monto no puede exceder saldo pendiente
         double totalPagadoActual = factura.getPagos().stream()
                 .mapToDouble(Pago::getMonto)
                 .sum();
+
         double saldoPendiente = factura.getTotal() - totalPagadoActual;
 
         if (monto > saldoPendiente) {
             throw new MontoExcedeSaldoException(
-                String.format("El monto ($%.2f) excede el saldo pendiente ($%.2f). No se permiten sobrepagos.",
-                    monto, saldoPendiente)
-            );
+                    String.format("付款金额（$%.2f）超过未付余额（$%.2f），不允许超额付款。",
+                            monto, saldoPendiente));
         }
 
-        // Crear y persistir el pago
         Pago pago = new Pago();
         pago.setFactura(factura);
         pago.setMonto(monto);
         pago.setMetodo(metodo);
 
-        // Set usuario responsable de registrar el pago (trazabilidad)
         try {
             pago.setRegistradoPorUsuario(usuarioService.getCurrentUsuario());
         } catch (Exception e) {
-            // Si no se puede obtener el usuario (ej. problema con SecurityContext),
-            // continuar sin trazabilidad en lugar de fallar toda la operación
             System.err.println("Warning: No se pudo obtener usuario actual para trazabilidad: " + e.getMessage());
         }
 
         Pago savedPago = pagoRepository.save(pago);
         factura.getPagos().add(savedPago);
 
-        // Recalcular total pagado y actualizar estado si está completamente pagado
         double totalPagado = factura.getPagos().stream()
                 .mapToDouble(Pago::getMonto)
                 .sum();
@@ -389,17 +382,13 @@ public class FacturaService {
         if (totalPagado >= factura.getTotal()) {
             factura.setEstado(FacturaEstado.PAGADA);
 
-            // Set fechaHoraPago only once (idempotent)
             if (factura.getFechaHoraPago() == null) {
                 factura.setFechaHoraPago(LocalDateTime.now());
             }
 
-            // Handle both pedido-based (legacy) and cuenta-based (new) facturas
             if (factura.getCuenta() != null) {
-                // New flow: cuenta-based factura
                 Cuenta cuenta = factura.getCuenta();
 
-                // Mark all pedidos in cuenta as PAGADO
                 for (Pedido pedido : cuenta.getPedidos()) {
                     if (!"PAGADO".equals(pedido.getEstado())) {
                         pedido.setEstado("PAGADO");
@@ -407,28 +396,23 @@ public class FacturaService {
                     }
                 }
 
-                // Close cuenta
                 cuentaService.closeCuenta(cuenta.getId());
 
-                // Liberar mesa
                 Mesa mesa = cuenta.getMesa();
                 if (mesa != null && "ocupada".equalsIgnoreCase(mesa.getEstado())) {
                     mesa.setEstado("disponible");
                     mesaRepository.save(mesa);
                 }
             } else if (factura.getPedido() != null) {
-                // Legacy flow: pedido-based factura
                 Pedido pedido = factura.getPedido();
                 pedido.setEstado("PAGADO");
                 pedidoRepository.save(pedido);
 
-                // Liberar mesa: marcar como disponible si está ocupada
                 Mesa mesa = pedido.getMesa();
                 if (mesa != null && "ocupada".equalsIgnoreCase(mesa.getEstado())) {
                     mesa.setEstado("disponible");
                     mesaRepository.save(mesa);
                 }
-                // Si está reservada, mantener (no romper reservas)
             }
         }
 
@@ -440,27 +424,24 @@ public class FacturaService {
         FacturaResponseDTO dto = new FacturaResponseDTO();
         dto.setId(factura.getId());
 
-        // Handle both pedido-based (legacy) and cuenta-based (new) facturas
         if (factura.getPedido() != null) {
             dto.setPedidoId(factura.getPedido().getId());
             dto.setCuentaId(null);
         } else if (factura.getCuenta() != null) {
-            // For cuenta-based facturas, pedidoId is null but cuentaId is set
             dto.setPedidoId(null);
             dto.setCuentaId(factura.getCuenta().getId());
         }
 
         dto.setFechaHora(factura.getFechaHora());
 
-        // Trazabilidad: incluir email del usuario que creó la factura (si existe)
         if (factura.getCreadaPorUsuario() != null) {
             dto.setCreadaPor(factura.getCreadaPorUsuario().getEmail());
         }
 
-        // Cliente snapshot data (frozen at factura creation time)
         if (factura.getCliente() != null) {
             dto.setClienteId(factura.getCliente().getId());
         }
+
         dto.setClienteIdentificacionFiscal(factura.getClienteIdentificacionFiscal());
         dto.setClienteNombre(factura.getClienteNombre());
         dto.setClienteDireccion(factura.getClienteDireccion());
@@ -476,12 +457,13 @@ public class FacturaService {
         List<PagoResponseDTO> pagos = factura.getPagos().stream()
                 .map(this::mapPagoToResponseDTO)
                 .collect(Collectors.toList());
+
         dto.setPagos(pagos);
 
-        // Calcular totalPagado y saldoPendiente
         double totalPagado = factura.getPagos().stream()
                 .mapToDouble(Pago::getMonto)
                 .sum();
+
         double saldoPendiente = Math.max(factura.getTotal() - totalPagado, 0.0);
 
         dto.setTotalPagado(totalPagado);
@@ -497,7 +479,6 @@ public class FacturaService {
         dto.setMetodo(pago.getMetodo());
         dto.setFechaHora(pago.getFechaHora());
 
-        // Trazabilidad: incluir email del usuario que registró el pago (si existe)
         if (pago.getRegistradoPorUsuario() != null) {
             dto.setRegistradoPor(pago.getRegistradoPorUsuario().getEmail());
         }
