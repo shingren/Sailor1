@@ -20,10 +20,7 @@ function FacturasPage() {
   }, [isAuthenticated])
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('zh-CN', {
-      style: 'currency',
-      currency: 'MXN'
-    }).format(amount || 0)
+    return `${Number(amount || 0).toFixed(2)} 元`
   }
 
   const getEstadoText = (estado) => {
@@ -168,10 +165,14 @@ function FacturasPage() {
   }
 
   const registrarPago = async (facturaId) => {
+    const factura = facturas.find(f => f.id === facturaId)
     const form = pagoForms[facturaId] || {}
 
-    if (!form.monto || !form.metodo) {
-      setError('请填写付款金额和付款方式')
+    const monto = form.monto || factura?.saldoPendiente || factura?.total
+    const metodo = form.metodo || 'EFECTIVO'
+    
+    if (!monto || Number(monto) <= 0) {
+      setError('付款金额必须大于 0')
       return
     }
 
@@ -187,8 +188,8 @@ function FacturasPage() {
         },
         body: JSON.stringify({
           facturaId: facturaId,
-          monto: parseFloat(form.monto),
-          metodo: form.metodo
+          monto: parseFloat(monto),
+          metodo: metodo
         })
       })
 
@@ -208,8 +209,66 @@ function FacturasPage() {
 
       fetchFacturas()
       fetchCuentasListasFacturar()
+
+      window.dispatchEvent(new Event('dashboard-refresh'))
     } catch (err) {
       setError(err.message)
+    }
+  }
+
+  const imprimirCuenta = async (cuentaId) => {
+    if (!cuentaId) {
+      setError('该账单没有关联的餐桌账单，无法打印就餐详单')
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/cuentas/${cuentaId}/ticket`, {
+        headers: {
+          Authorization: getAuthHeader()
+        }
+      })
+
+      if (!response.ok) {
+        alert('生成就餐详单失败')
+        return
+      }
+
+      const text = await response.text()
+
+      const printWindow = window.open('', '', 'width=420,height=600')
+
+      if (!printWindow) {
+        alert('浏览器阻止了打印窗口，请允许弹出窗口')
+        return
+      }
+
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>就餐详单</title>
+            <style>
+              body {
+                font-family: monospace;
+                white-space: pre-wrap;
+                font-size: 15px;
+                padding: 16px;
+              }
+            </style>
+          </head>
+          <body>${text}</body>
+        </html>
+      `)
+
+      printWindow.document.close()
+      printWindow.focus()
+
+      setTimeout(() => {
+        printWindow.print()
+        printWindow.close()
+      }, 300)
+    } catch (err) {
+      alert('错误：' + err.message)
     }
   }
 
@@ -225,9 +284,17 @@ function FacturasPage() {
     )
   }
 
+  const facturasPendientes = facturas.filter(f =>
+    f.estado === 'PENDIENTE'
+  )
+
+  const facturasHistoricas = facturas.filter(f =>
+    f.estado !== 'PENDIENTE'
+  )
+
   return (
     <div style={{ padding: '20px' }}>
-      <h1>账单</h1>
+      <h1>账单结算</h1>
 
       {error && (
         <div className="alert alert-error" style={{ marginBottom: '10px' }}>
@@ -294,15 +361,15 @@ function FacturasPage() {
 
       <div className="card" style={{ marginTop: '20px' }}>
         <div className="card-header">
-          <h2 className="card-title">账单记录</h2>
+          <h2 className="card-title">待付款账单</h2>
         </div>
 
         {loading ? (
           <p>正在加载...</p>
-        ) : facturas.length === 0 ? (
-          <p className="text-muted">暂无账单</p>
+        ) : facturasPendientes.length === 0 ? (
+          <p className="text-muted">暂无待付款账单</p>
         ) : (
-          facturas.map(factura => (
+          facturasPendientes.map(factura => (
             <div
               key={factura.id}
               style={{
@@ -333,7 +400,10 @@ function FacturasPage() {
                   <input
                     type="number"
                     placeholder="付款金额"
-                    value={pagoForms[factura.id]?.monto || ''}
+                    value={
+                      pagoForms[factura.id]?.monto ??
+                      Number(factura.saldoPendiente || factura.total || 0).toFixed(2)
+                    }
                     onChange={(e) =>
                       setPagoForms(prev => ({
                         ...prev,
@@ -350,7 +420,7 @@ function FacturasPage() {
                   />
 
                   <select
-                    value={pagoForms[factura.id]?.metodo || ''}
+                    value={pagoForms[factura.id]?.metodo || 'EFECTIVO'}
                     onChange={(e) =>
                       setPagoForms(prev => ({
                         ...prev,
@@ -365,9 +435,9 @@ function FacturasPage() {
                       padding: '8px'
                     }}
                   >
-                    <option value="">付款方式</option>
                     <option value="EFECTIVO">{getMetodoPagoText('EFECTIVO')}</option>
                     <option value="TARJETA">{getMetodoPagoText('TARJETA')}</option>
+                    <option value="TRANSFERENCIA">{getMetodoPagoText('TRANSFERENCIA')}</option>
                   </select>
 
                   <button
@@ -378,6 +448,42 @@ function FacturasPage() {
                   </button>
                 </div>
               )}
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className="card" style={{ marginTop: '20px' }}>
+        <div className="card-header">
+          <h2 className="card-title">历史账单</h2>
+        </div>
+
+        {loading ? (
+          <p>正在加载...</p>
+        ) : facturasHistoricas.length === 0 ? (
+          <p className="text-muted">暂无历史账单</p>
+        ) : (
+          facturasHistoricas.map(factura => (
+            <div
+              key={factura.id}
+              style={{
+                border: '1px solid #ddd',
+                padding: '12px',
+                marginBottom: '10px',
+                borderRadius: '6px',
+                backgroundColor: '#fafafa'
+              }}
+            >
+              <h3>账单 #{factura.id} - {getEstadoText(factura.estado)}</h3>
+              <p>合计：{formatCurrency(factura.total)}</p>
+              <p>未付余额：{formatCurrency(factura.saldoPendiente)}</p>
+
+              <button
+                className="btn-secondary"
+                onClick={() => imprimirCuenta(factura.cuentaId)}
+              >
+                打印就餐详单
+              </button>
             </div>
           ))
         )}

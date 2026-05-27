@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useAuth } from './AuthContext'
 
 function MesasPage() {
@@ -11,14 +11,13 @@ function MesasPage() {
   const [formData, setFormData] = useState({
     codigo: '',
     capacidad: '',
-    estado: 'disponible',
+    estado: 'DISPONIBLE',
     locationId: ''
   })
   const [newLocationName, setNewLocationName] = useState('')
   const [createError, setCreateError] = useState(null)
   const [success, setSuccess] = useState(null)
   const { isAuthenticated, getAuthHeader } = useAuth()
-  const navigate = useNavigate()
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -27,6 +26,37 @@ function MesasPage() {
     fetchMesas()
     fetchLocations()
   }, [isAuthenticated])
+
+  const normalizarEstadoMesa = (estado) => {
+    const valor = String(estado || '').trim().toUpperCase()
+
+    if (valor === 'OCUPADA' || valor === 'OCUPADO') {
+      return 'OCUPADA'
+    }
+
+    if (valor === 'RESERVADA' || valor === 'RESERVADO') {
+      return 'RESERVADA'
+    }
+
+    if (valor === 'MANTENIMIENTO') {
+      return 'MANTENIMIENTO'
+    }
+
+    return 'DISPONIBLE'
+  }
+
+  const getEstadoMesaText = (estado) => {
+    const estadoNormalizado = normalizarEstadoMesa(estado)
+
+    const estadoMap = {
+      DISPONIBLE: '空闲',
+      OCUPADA: '占用',
+      RESERVADA: '已预订',
+      MANTENIMIENTO: '维护中'
+    }
+
+    return estadoMap[estadoNormalizado] || estadoNormalizado
+  }
 
   const fetchMesas = async () => {
     setLoading(true)
@@ -151,7 +181,7 @@ function MesasPage() {
       if (!response.ok) throw new Error('创建餐桌失败')
 
       setSuccess(`餐桌 "${formData.codigo}" 创建成功！`)
-      setFormData({ codigo: '', capacidad: '', estado: 'disponible', locationId: '' })
+      setFormData({ codigo: '', capacidad: '', estado: 'DISPONIBLE', locationId: '' })
       fetchMesas()
     } catch (err) {
       setCreateError(err.message)
@@ -188,6 +218,7 @@ function MesasPage() {
 
       if (response.ok) {
         fetchMesas()
+        window.dispatchEvent(new Event('dashboard-refresh'))
       }
     } catch (err) {
       setError('更新区域失败：' + err.message)
@@ -218,9 +249,18 @@ function MesasPage() {
 
   // Calculate summary statistics
   const totalMesas = mesas.length
-  const mesasDisponibles = mesas.filter(m => m.estado === 'disponible').length
-  const mesasOcupadas = mesas.filter(m => m.estado === 'ocupada' || m.estado === 'OCUPADA').length
-  const mesasReservadas = mesas.filter(m => m.estado === 'reservada').length
+
+  const mesasDisponibles = mesas.filter(m =>
+    normalizarEstadoMesa(m.estado) === 'DISPONIBLE'
+  ).length
+
+  const mesasOcupadas = mesas.filter(m =>
+    normalizarEstadoMesa(m.estado) === 'OCUPADA'
+  ).length
+
+  const mesasReservadas = mesas.filter(m =>
+    normalizarEstadoMesa(m.estado) === 'RESERVADA'
+  ).length
 
   return (
     <div>
@@ -341,8 +381,10 @@ function MesasPage() {
                 onChange={handleChange}
                 required
               >
-                <option value="disponible">空闲</option>
-                <option value="ocupada">已占用</option>
+                <option value="DISPONIBLE">空闲</option>
+                <option value="OCUPADA">已占用</option>
+                <option value="RESERVADA">已预订</option>
+                <option value="MANTENIMIENTO">维护中</option>
               </select>
             </div>
 
@@ -395,17 +437,19 @@ function MesasPage() {
                   <td>{mesa.capacidad} 人</td>
                   <td>
                     <select
-                      value={mesa.estado}
+                      value={normalizarEstadoMesa(mesa.estado)}
                       onChange={(e) => handleStatusChange(mesa.id, e.target.value)}
                       className={`badge ${
-                        mesa.estado === 'disponible' ? 'badge-green' :
-                        mesa.estado === 'ocupada' ? 'badge-red' :
+                        normalizarEstadoMesa(mesa.estado) === 'DISPONIBLE' ? 'badge-green' :
+                        normalizarEstadoMesa(mesa.estado) === 'OCUPADA' ? 'badge-red' :
                         'badge-yellow'
                       }`}
                       style={{ border: 'none', fontWeight: 'bold', cursor: 'pointer' }}
                     >
-                      <option value="disponible">空闲</option>
-                      <option value="ocupada">已占用</option>
+                      <option value="DISPONIBLE">空闲</option>
+                      <option value="OCUPADA">已占用</option>
+                      <option value="RESERVADA">已预订</option>
+                      <option value="MANTENIMIENTO">维护中</option>
                     </select>
                   </td>
                   <td>

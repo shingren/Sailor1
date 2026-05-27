@@ -910,3 +910,59 @@ tbody tr:last-child td {
     font-size: var(--font-size-xl);
   }
 }
+
+.topbar {
+  margin-left: var(--sidebar-width, 240px);
+  width: calc(100% - var(--sidebar-width, 240px));
+  box-sizing: border-box;
+
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  gap: 28px;
+
+  padding: 20px 32px;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+
+  position: relative;
+  z-index: 5;
+}
+
+.kpi-card {
+  width: 300px;
+  min-height: 90px;
+  border-radius: 12px;
+  padding: 18px 28px;
+  color: #ffffff;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.kpi-card div {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.kpi-card strong {
+  font-size: 34px;
+  line-height: 1;
+  font-weight: 800;
+}
+
+.kpi-sales {
+  background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+}
+
+.kpi-tables {
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+}
+
+.kpi-orders {
+  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+}

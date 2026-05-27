@@ -51,6 +51,9 @@ public class PedidoService {
         Mesa mesa = mesaRepository.findById(request.getMesaId())
                 .orElseThrow(() -> new RuntimeException("Mesa not found with id: " + request.getMesaId()));
 
+        mesa.setEstado("OCUPADA");
+        mesaRepository.save(mesa);
+
         if ("disponible".equalsIgnoreCase(mesa.getEstado())) {
             mesa.setEstado("ocupada");
             mesaRepository.save(mesa);
@@ -122,7 +125,10 @@ public class PedidoService {
                     return estado == null
                             || (!estado.equalsIgnoreCase("FACTURADO")
                                     && !estado.equalsIgnoreCase("CANCELADO")
-                                    && !estado.equalsIgnoreCase("ENTREGADO"));
+                                    && !estado.equalsIgnoreCase("ENTREGADO")
+                                    && !estado.equalsIgnoreCase("PAGADO")
+                                    && !estado.equalsIgnoreCase("PAGADA")
+                                    && !estado.equalsIgnoreCase("FACTURADA"));
                 })
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());

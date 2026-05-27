@@ -49,7 +49,7 @@ function ProductosPage() {
         setError('未授权，请重新登录')
         return
       }
-      if (!response.ok) throw new Error('加载商品失败')
+      if (!response.ok) throw new Error('加载菜品失败')
       const data = await response.json()
       setProductos(data)
     } catch (err) {
@@ -83,7 +83,7 @@ function ProductosPage() {
         setCreateError('未授权，请重新登录')
         return
       }
-      if (!response.ok) throw new Error('创建商品失败')
+      if (!response.ok) throw new Error('添加菜品失败')
 
       setFormData({
         nombre: '',
@@ -118,10 +118,10 @@ function ProductosPage() {
       if (response.ok) {
         fetchProductos()
       } else {
-        setError('修改商品状态失败')
+        setError('修改菜品状态失败')
       }
     } catch (err) {
-      setError('修改商品状态失败：' + err.message)
+      setError('修改菜品状态失败：' + err.message)
     }
   }
 
@@ -185,7 +185,7 @@ function ProductosPage() {
     return (
       <div className="centered-container">
         <div className="card">
-          <h2>商品</h2>
+          <h2>菜品</h2>
           <p>请先登录后再查看此页面。</p>
           <Link to="/login" className="btn-primary">去登录</Link>
         </div>
@@ -198,11 +198,11 @@ function ProductosPage() {
 
   return (
     <div>
-      <h1>商品</h1>
+      <h1>菜单管理</h1>
 
       <div className="card">
         <div className="card-header">
-          <h2>创建新商品</h2>
+          <h2>新增菜品</h2>
         </div>
         <form onSubmit={handleSubmit}>
           <div>
@@ -263,17 +263,17 @@ function ProductosPage() {
             </select>
           </div>
 
-          <button type="submit" className="btn-primary">创建商品</button>
+          <button type="submit" className="btn-primary">添加菜品</button>
         </form>
         {createError && <div className="alert alert-error">{createError}</div>}
       </div>
 
       <div className="card">
         <div className="card-header">
-          <h2>商品列表</h2>
+          <h2>菜单列表</h2>
         </div>
         {productos.length === 0 ? (
-          <p>没有找到商品</p>
+          <p>暂无菜品</p>
         ) : (
           <table>
             <thead>
@@ -321,7 +321,7 @@ function ProductosPage() {
                       </div>
                     ) : (
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        <span>${producto.precio.toFixed(2)}</span>
+                        <span>{Number(producto.precio || 0).toFixed(2)} 元</span>
                         {hasRole('ADMIN') && (
                           <button
                             onClick={() => handleStartEditPrecio(producto)}
@@ -339,7 +339,7 @@ function ProductosPage() {
                     <button
                       onClick={() => handleToggleActive(producto.id)}
                       className={producto.activo ? 'btn-success btn-small' : 'btn-secondary btn-small'}
-                      title={producto.activo ? '停用商品' : '启用商品'}
+                      title={producto.activo ? '停用菜品' : '启用菜品'}
                     >
                       {producto.activo ? '✓ 启用' : '✗ 停用'}
                     </button>

@@ -83,7 +83,7 @@ function PedidosPage() {
     setLoading(true)
     setError('')
     try {
-      const response = await fetch('/api/pedidos', {
+      const response = await fetch('/api/pedidos/activos', {
         headers: { Authorization: getAuthHeader() }
       })
 
@@ -98,7 +98,24 @@ function PedidosPage() {
       }
 
       const data = await response.json()
-      setPedidos(data)
+
+      const estadosNoActivos = [
+        'PAGADO',
+        'PAGADA',
+        'FACTURADO',
+        'FACTURADA',
+        'CANCELADO',
+        'CANCELADA',
+        'ENTREGADO',
+        'ENTREGADA'
+      ]
+
+      const pedidosActivos = data.filter(pedido => {
+        const estado = String(pedido.estado || '').trim().toUpperCase()
+        return !estadosNoActivos.includes(estado)
+      })
+
+      setPedidos(pedidosActivos)
     } catch (err) {
       setError('加载订单失败：' + err.message)
     } finally {
@@ -212,39 +229,64 @@ function PedidosPage() {
         return
       }
 
-      tickets.forEach((text, index) => {
-        const printWindow = window.open('', '', 'width=400,height=600')
+      const printWindow = window.open('', '', 'width=500,height=700')
 
-        if (!printWindow) {
-          alert('浏览器阻止了打印窗口，请允许 localhost 弹出窗口。')
-          return
-        }
+      if (!printWindow) {
+        alert('浏览器阻止了打印窗口，请允许 localhost 弹出窗口。')
+        return
+      }
 
-        printWindow.document.write(`
-          <html>
-            <head>
-              <title>后厨小票</title>
-              <style>
-                body {
-                  font-family: monospace;
-                  white-space: pre-wrap;
-                  font-size: 14px;
-                  padding: 10px;
-                }
-              </style>
-            </head>
-            <body>${text}</body>
-          </html>
-        `)
+      const html = `
+        <html>
+          <head>
+            <title>后厨小票</title>
+            <style>
+              body {
+                font-family: monospace;
+                white-space: pre-wrap;
+                font-size: 15px;
+                padding: 16px;
+              }
 
-        printWindow.document.close()
-        printWindow.focus()
+              .ticket {
+                page-break-after: always;
+                margin-bottom: 32px;
+                padding-bottom: 24px;
+                border-bottom: 1px dashed #999;
+              }
 
-        setTimeout(() => {
-          printWindow.print()
-          printWindow.close()
-        }, 500 + index * 800)
-      })
+              .ticket:last-child {
+                page-break-after: auto;
+                border-bottom: none;
+              }
+
+              .ticket-title {
+                text-align: center;
+                font-weight: bold;
+                font-size: 18px;
+                margin-bottom: 12px;
+              }
+            </style>
+          </head>
+          <body>
+            ${tickets.map((text, index) => `
+              <div class="ticket">
+                <div class="ticket-title">后厨小票 ${index + 1}</div>
+                ${text}
+              </div>
+            `).join('')}
+          </body>
+        </html>
+      `
+
+      printWindow.document.write(html)
+      printWindow.document.close()
+      printWindow.focus()
+
+      setTimeout(() => {
+        printWindow.print()
+        printWindow.close()
+      }, 300)
     } catch (err) {
       alert('错误：' + err.message)
     }
@@ -451,14 +493,14 @@ function PedidosPage() {
     }
 
     if (formData.items.length === 0) {
-      setError('请至少添加一个商品到订单')
+      setError('请至少添加一道菜品到订单')
       return
     }
 
     const hasInvalidItems = formData.items.some(item => !item.productoId || item.cantidad < 1)
 
     if (hasInvalidItems) {
-      setError('所有商品都必须有商品名称，并且数量不能小于 1')
+      setError('所有菜品都必须选择名称，并且数量不能小于 1')
       return
     }
 
@@ -509,6 +551,8 @@ function PedidosPage() {
       fetchPedidos()
       fetchItemsListos()
 
+      window.dispatchEvent(new Event('dashboard-refresh'))
+
       imprimirTicket(data.id)
     } catch (err) {
       setError('创建订单失败：' + err.message)
@@ -536,7 +580,7 @@ function PedidosPage() {
 
   return (
     <div>
-      <h1>订单</h1>
+      <h1>点餐订单</h1>
 
       <div className="card" style={{ border: '2px solid #10b981', backgroundColor: '#ecfdf5' }}>
         <div className="card-header">
@@ -619,7 +663,7 @@ function PedidosPage() {
 
       <div className="card">
         <div className="card-header">
-          <h2 className="card-title">活跃订单</h2>
+          <h2 className="card-title">当前用餐订单</h2>
         </div>
 
         {loading ? (
@@ -633,14 +677,14 @@ function PedidosPage() {
                 <th>状态</th>
                 <th>类型</th>
                 <th>时间</th>
-                <th>商品数量</th>
+                <th>菜品数量</th>
                 <th>操作</th>
               </tr>
             </thead>
             <tbody>
               {pedidos.length === 0 ? (
                 <tr>
-                  <td colSpan="7">没有找到订单</td>
+                  <td colSpan="7">暂无当前用餐订单</td>
                 </tr>
               ) : (
                 pedidos.map(pedido => (
@@ -664,7 +708,7 @@ function PedidosPage() {
                       </strong>
                     </td>
                     <td>{pedido.fechaHora ? new Date(pedido.fechaHora).toLocaleString() : '-'}</td>
-                    <td>{pedido.items?.length || 0} 件商品</td>
+                    <td>{pedido.items?.length || 0} 件菜品</td>
                     <td>
                       <button
                         type="button"
@@ -693,7 +737,7 @@ function PedidosPage() {
 
       <div className="card">
         <div className="card-header">
-          <h2 className="card-title">创建新订单 - POS</h2>
+          <h2 className="card-title">创建点餐订单 - POS</h2>
         </div>
 
         {loadingMesas || loadingProductos ? (
