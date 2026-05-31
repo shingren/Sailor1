@@ -181,7 +181,12 @@ function MesasPage() {
       if (!response.ok) throw new Error('创建餐桌失败')
 
       setSuccess(`餐桌 "${formData.codigo}" 创建成功！`)
-      setFormData({ codigo: '', capacidad: '', estado: 'DISPONIBLE', locationId: '' })
+      setFormData({
+        codigo: '',
+        capacidad: '',
+        estado: 'DISPONIBLE',
+        locationId: ''
+      })
       fetchMesas()
     } catch (err) {
       setCreateError(err.message)
@@ -201,6 +206,7 @@ function MesasPage() {
 
       if (response.ok) {
         fetchMesas()
+        window.dispatchEvent(new Event('dashboard-refresh'))
       }
     } catch (err) {
       setError('更新状态失败：' + err.message)

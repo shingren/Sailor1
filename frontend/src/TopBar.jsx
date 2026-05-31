@@ -33,7 +33,7 @@ function TopBar() {
         const mesas = await mesasResponse.json()
 
         occupiedTablesCount = mesas.filter(mesa =>
-          String(mesa.estado || '').trim().toLowerCase() === 'ocupada'
+          String(mesa.estado || '').trim().toLowerCase() === 'OCUPADA'
         ).length
       }
 

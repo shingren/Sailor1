@@ -400,7 +400,7 @@ public class FacturaService {
 
                 Mesa mesa = cuenta.getMesa();
                 if (mesa != null && "ocupada".equalsIgnoreCase(mesa.getEstado())) {
-                    mesa.setEstado("disponible");
+                    mesa.setEstado("DISPONIBLE");
                     mesaRepository.save(mesa);
                 }
             } else if (factura.getPedido() != null) {
@@ -410,7 +410,7 @@ public class FacturaService {
 
                 Mesa mesa = pedido.getMesa();
                 if (mesa != null && "ocupada".equalsIgnoreCase(mesa.getEstado())) {
-                    mesa.setEstado("disponible");
+                    mesa.setEstado("DISPONIBLE");
                     mesaRepository.save(mesa);
                 }
             }

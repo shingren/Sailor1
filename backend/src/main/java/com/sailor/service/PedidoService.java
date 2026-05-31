@@ -54,11 +54,6 @@ public class PedidoService {
         mesa.setEstado("OCUPADA");
         mesaRepository.save(mesa);
 
-        if ("disponible".equalsIgnoreCase(mesa.getEstado())) {
-            mesa.setEstado("ocupada");
-            mesaRepository.save(mesa);
-        }
-
         Cuenta cuenta = cuentaService.findOrCreateOpenCuenta(mesa, null);
 
         Pedido pedido = new Pedido();
@@ -122,13 +117,20 @@ public class PedidoService {
                 .filter(pedido -> {
                     String estado = pedido.getEstado();
 
-                    return estado == null
-                            || (!estado.equalsIgnoreCase("FACTURADO")
-                                    && !estado.equalsIgnoreCase("CANCELADO")
-                                    && !estado.equalsIgnoreCase("ENTREGADO")
-                                    && !estado.equalsIgnoreCase("PAGADO")
-                                    && !estado.equalsIgnoreCase("PAGADA")
-                                    && !estado.equalsIgnoreCase("FACTURADA"));
+                    if (estado == null) {
+                        return true;
+                    }
+
+                    String e = estado.trim().toUpperCase();
+
+                    return !e.equals("FACTURADO")
+                            && !e.equals("FACTURADA")
+                            && !e.equals("PAGADO")
+                            && !e.equals("PAGADA")
+                            && !e.equals("CANCELADO")
+                            && !e.equals("CANCELADA")
+                            && !e.equals("ENTREGADO")
+                            && !e.equals("ENTREGADA");
                 })
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
